@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const queryClient = new QueryClient();
 
 // app/_layout.tsx
+import { NavigationContextProvider } from "@/components/context/NavigationContext";
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../components/context/auth';
@@ -43,25 +44,58 @@ function RootLayoutNav() {
     clearForDev();
   }, []);
 */
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return <Stack screenOptions={{ headerShown: true }} >
+      <Stack.Screen name="dashboard" options={{ headerTitle: "DDDD" }} />
+    </Stack>;
 }
 
 export default function RootLayout() {
   return (
     <AuthProvider>
+       <NavigationContextProvider>
       <QueryClientProvider client={queryClient}>
         <RootLayoutNav />
       </QueryClientProvider>
+      </NavigationContextProvider>
     </AuthProvider>
   );
 }
 
 /*
-export default function RootLayout() {
+ return <Stack screenOptions={{ headerShown: false }} >
+      <Stack.Screen name="dashboard" options={{ headerTitle: "DDDD" }} />
+    </Stack>;
+*/
+
+/*
+import { Stack } from 'expo-router';
+import { Animated, Text, StyleSheet } from 'react-native';
+
+export default function AppLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-    <Stack />
-    </QueryClientProvider>
-  )
+    <Stack
+      screenOptions={{
+        headerTitle: ({ children }) => (
+          <Animated.Text style={styles.headerTitle}>{children}</Animated.Text>
+        ),
+        headerStyle: {
+          backgroundColor: 'orange',
+        },
+        headerTitleStyle: {
+          color: 'white',
+          fontWeight: 'bold',
+        },
+      }}
+    />
+  );
 }
+
+const styles = StyleSheet.create({
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    opacity: 1, // You can animate this for smooth transitions
+  },
+});
 */
