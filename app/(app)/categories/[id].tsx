@@ -2,12 +2,13 @@
 
 //import { useNavigationContext } from '@/components/context/NavigationContext';
 import api from '@/api/axios';
-import { CategoryProps } from '@/components/types';
+import { CategoryProps, UnitProps } from '@/components/types';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect } from 'react';
-import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Button, Text, YStack } from 'tamagui';
 
 
 export default function CategoryScreen() {
@@ -72,43 +73,55 @@ export default function CategoryScreen() {
           headerShown: true, // Ensure the header is shown for this screen
         }}
       />
-      <View style={[
-        styles.container,
-        {
-          // Manually apply insets to avoid the notch and home indicator
-          paddingTop: insets.top,
-          paddingBottom: insets.bottom
-        }
-      ]}>
-      <ScrollView contentContainerStyle ={{padding: 10,}}
-                 style={{ width: '100%' }}
-             >
-           <View style={{ flex: 1, gap: 0, marginHorizontal: 0,  padding:5, justifyContent: 'center', backgroundColor: 'lightblue', marginTop: 10}}>
-             { units && units.length > 0 ? (
-                 units.map((category: CategoryProps, index: number) => (
-                     <View key={index} style={[styles.button, ]}>
-                     <Button
-                         key={index}
-                         title={category.name}
-                         color="white"
-                         onPress ={() => handleClick(category.id.toString())}
-               />
-                     </View>
      
-                   
-                 ))
-                 ) : (
-                 <Text style={styles.empty}>No levels available.</Text>
-                  )
-     
-             }
-              </View>
-         </ScrollView>
-      </View>
+         <YStack flex={1} pb={insets.bottom}>
+        <ScrollView>
+          <YStack flex={1} p="$3" gap="$2">
+            {units && units.length > 0 ? (
+              units.map((unit: UnitProps, index: number) => (
+                <Button
+                  key={index}
+                  onPress={() => handleClick(unit.id.toString())}
+                >
+                  {unit.name}
+                </Button>
+              ))
+            ) : (
+              <Text text="center" mt="$10" color="$gray9">
+                No levels available.
+              </Text>
+            )}
+          </YStack>
+        </ScrollView>
+      </YStack>
+      
     </>
   );
 }
 
+/*
+    <YStack flex={1} pb={insets.bottom}>
+        <ScrollView>
+          <YStack flex={1} p="$3" gap="$2">
+            {categories && categories.length > 0 ? (
+              categories.map((category: CategoryProps, index: number) => (
+                <Button
+                  key={index}
+                  onPress={() => handleClick(category.id.toString())}
+                >
+                  rrrrrr{category.name}
+                </Button>
+              ))
+            ) : (
+              <Text text="center" mt="$10" color="$gray9">
+                No levels available.
+              </Text>
+            )}
+          </YStack>
+        </ScrollView>
+      </YStack>
+*/
+/*
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'blue', padding: 10 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -123,5 +136,34 @@ const styles = StyleSheet.create({
   quizMeta: { color: '#888', marginTop: 5 },
   empty: { textAlign: 'center', marginTop: 50, color: '#999' }
 });
+*/
+
+/*
+   <ScrollView contentContainerStyle ={{padding: 10,}}
+                 style={{ width: '100%' }}
+             >
+           <View style={{ flex: 1, gap: 0, marginHorizontal: 0,  padding:5, justifyContent: 'center', backgroundColor: 'lightblue', marginTop: 10}}>
+             { units && units.length > 0 ? (
+                 units.map((unit: CategoryProps, index: number) => (
+                     <View key={index} style={[styles.button, ]}>
+                     <Button
+                         key={index}
+                         title={unit.name}
+                         color="white"
+                         onPress ={() => handleClick(unit.id.toString())}
+               />
+                     </View>
+     
+                   
+                 ))
+                 ) : (
+                 <Text style={styles.empty}>No levels available.</Text>
+                  )
+     
+             }
+              </View>
+         </ScrollView>
+*/
+
 
 

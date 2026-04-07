@@ -6,7 +6,9 @@ const queryClient = new QueryClient();
 import { NavigationContextProvider } from "@/components/context/NavigationContext";
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
+import { TamaguiProvider } from 'tamagui';
 import { AuthProvider, useAuth } from '../components/context/auth';
+import { tamaguiConfig } from '../tamagui.config';
 
 function RootLayoutNav() {
   const auth = useAuth();
@@ -51,13 +53,15 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-       <NavigationContextProvider>
-      <QueryClientProvider client={queryClient}>
-        <RootLayoutNav />
-      </QueryClientProvider>
-      </NavigationContextProvider>
-    </AuthProvider>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+      <AuthProvider>
+        <NavigationContextProvider>
+          <QueryClientProvider client={queryClient}>
+            <RootLayoutNav />
+          </QueryClientProvider>
+        </NavigationContextProvider>
+      </AuthProvider>
+    </TamaguiProvider>
   );
 }
 

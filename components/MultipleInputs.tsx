@@ -9,13 +9,6 @@ interface InputItem {
   
 }
 
-const default_results = {
-  user_answer: '', 
-  score: 0, 
-  error_flag: true, 
-
-}
-
  const MultipleInputs: React.FC<TakeQuestionProps> = ({ ref, content, enableCheckButton }) => {
   const [inputFields, setInputFields] = useState<InputItem[] | undefined >([])
   const [inputValues, setInputValues] = useState<{ [key: string]: string }>({ name: '', city: '' });
@@ -32,27 +25,6 @@ const default_results = {
       getAnswer,
   }));
 
-  const compare_cloze_answers = (user_answer: string, answer_key: string) => {
-    let error = true;
-    const multiple_answers = answer_key.indexOf('*') >= 0;
-    if (multiple_answers) {
-        //console.log(" multiple answers")
-        let possible_answers = answer_key.split('*');
-        //possible_answers.forEach((possible_answer: string) => {
-        for (const possible_answer of possible_answers) {
-            if (user_answer.replace(/\s+/g, '') === possible_answer.replace(/\s+/g, '')) {
-                error = false;
-                break;
-            } 
-        };
-        return error;
-    } 
-       
-    if (user_answer.replace(/\s+/g, '') === answer_key.replace(/\s+/g, '')) {
-        error = false;
-    }
-    return error;
-}
 
 const getAnswer = () => {
   //console.log("process_button_cloze answer_key = ", answer_key)
@@ -65,39 +37,10 @@ const getAnswer = () => {
     return user_answer.join('/');
 }
 
-  const checkAnswer = (answer_key: string) => {
-   //console.log("process_button_cloze answer_key = ", answer_key)
-    //console.log("process_button_cloze user_answer = ", user_answer)
-    // split answer_key into an array of strings
-    const user_answer = Object.entries(inputValues)
-    .filter(([key, value]) => value.trim() !== '')
-    .map(([key, value]) => value);
-
-    let answer_key_parts = answer_key.split('/')
-    // iterate through user_answer array and compare with corresponding answer_key_parts
-    let error = false;
-    for (let i = 0; i < user_answer.length; i++) {
-        //console.log("process_words_scramble user_answer[i] = ", user_answer[i])
-        //console.log("process_words_scramble answer_key_parts[i] = ", answer_key_parts[i]);
-        error = compare_cloze_answers(user_answer[i], answer_key_parts[i]);
-    }
-    if (error) {
-        return { ...default_results,
-            user_answer: user_answer.join('/'),
-        }
-    }
-
-    return { ...default_results,
-        user_answer: user_answer.join('/'),
-        score: 5,
-        error_flag: false,  
-    }
-}
-  
-
-
   useEffect(() => {
     // split content by spaces or brackets
+    setInputFields([]); // reset input fields before processing new content
+    setInputValues({}); // reset input values before processing new content
     const array = content?.split(/(\[.*?\]|\s+|#)/).filter(item => item.trim() !== '');
     //console.log(" my_array =", my_array);
     
@@ -248,40 +191,31 @@ export default MultipleInputs;
 
 const styles = StyleSheet.create({
   container: {
-    //flexDirection: 'row',
-    //flexWrap: 'wrap',
-    borderRadius: 15,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
     width: '100%',
-    backgroundColor: 'lightgray',
-    //marginBottom: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
   },
   text: {
-    //color: 'white',
-    fontSize:  16,
+    fontSize: 16,
+    color: '#1C1C1E',
     marginHorizontal: 3,
-    //fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', // Use 'Courier' on iOS and 'monospace' on Android
-    
-  }, 
+  },
   computed_blank_layout: {
-    color: 'orange',
-    fontSize:  16,
-    //marginHorizontal: 3,
-    //fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', // Use 'Courier' on iOS and 'monospace' on Android
-    
-  }, 
+    color: 'transparent',
+    fontSize: 16,
+  },
   input: {
-    //color: 'white',
-  
-    paddingTop: 4,
+    paddingTop: 2,
     borderBottomWidth: 2,
     paddingLeft: 3,
-    borderColor: 'gray',
-    marginBottom: 18,
+    borderColor: '#E5E5EA',
+    marginBottom: 16,
     fontSize: 16,
-    backgroundColor: 'lightgray',
+    color: '#1C1C1E',
+    backgroundColor: '#FFFFFF',
     textAlign: 'center',
-    //fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', // Use 'Courier' on iOS and 'monospace' on Android
-   
   },
 });

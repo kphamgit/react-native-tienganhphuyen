@@ -4,6 +4,12 @@ export interface CategoryProps {
     category_number: number
 }
 
+export interface UnitProps {
+  id: number,
+  name: string
+  category_number: number
+}
+
 export interface LevelProps {
         id: number;
         level_number: number;
@@ -77,5 +83,22 @@ export interface QuestionProps {
         answer_key: string,
         score: number,
         error_flag: boolean,
+      }
+
+      export interface QuizAttemptProps {
+        id: number,
+        quiz_id: number,
+        user_name: string,
+        score: number,
+        created_at: string,
+        updated_at: string,
+        completion_status: string,
+      }
+    
+      export interface QuizAttemptCreatedProps {
+        question: QuestionProps,
+        question_attempt_id: number,
+        created: boolean
+        quiz_attempt: QuizAttemptProps,
       }
   

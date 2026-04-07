@@ -1,8 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../components/context/auth';
+
+import { Button, Input, Text, YStack } from 'tamagui';
+
+import { useTheme } from 'tamagui';
 
 // 1. Define the standalone login function
 const loginUser = async ({ username, password }: { username: string; password: string }) => {
@@ -31,6 +34,9 @@ export default function LoginScreen() {
     throw new Error('Auth context is not available');
   }
   const { signIn } = authContext;
+
+  const theme = useTheme()
+  console.log('background:', theme.background.val)
 
   // 2. Initialize the mutation
   const { mutate, isPending, error } = useMutation({
@@ -61,34 +67,59 @@ data: {"access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXB.., refres
   };
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top, paddingHorizontal: 20 }}>
-      <TextInput 
-        placeholder="Username" 
-        value={userName} 
-        onChangeText={setUserName} 
-        style={styles.input} 
-        autoCapitalize='none'
-      />
-      <TextInput 
-        placeholder="Password" 
-        value={password} 
-        onChangeText={setPassword} 
-        secureTextEntry 
-        style={styles.input} 
-      />
-
-      {error && <Text style={{ color: 'red' }}>{error.message}</Text>}
-
-      <TouchableOpacity onPress={handlePress} disabled={isPending} style={styles.button}>
-        {isPending ? <ActivityIndicator color="#fff" /> : <Text>LLLogin</Text>}
-      </TouchableOpacity>
-    </View>
-  );
+    // YStack is a View with flex-direction: column
+     // 'p="$5"' uses your theme padding
+     <YStack flex={1} justify="center" p="$5" bg="$background" gap="$4">
+       
+       <Text fontSize="$9" fontWeight="800">Welcome Back</Text>
+       
+       <YStack gap="$3">
+         <Input size="$5" placeholder="Username" value={userName} onChangeText={setUserName} autoCapitalize="none" />
+         <Input size="$5" placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+       </YStack>
+ 
+       <Button size="$5" theme="blue" bg="$color5" onPress={handlePress}>
+         Sign In
+       </Button>
+ 
+     </YStack>
+     
+   );
 }
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 15, borderRadius: 8, marginBottom: 15 },
-  errorText: { color: 'red', marginBottom: 10, textAlign: 'center' },
-  button: { backgroundColor: '#007bff', padding: 15, borderRadius: 8, alignItems: 'center' }
-});
+
+//<ThemeBuilderDemoSimple />
+
+/*
+ return (
+   // YStack is a View with flex-direction: column
+    // 'p="$5"' uses your theme padding
+    <YStack flex={1} justify="center" p="$5" bg="$background" gap="$4">
+      
+      <Text fontSize="$9" fontWeight="800">Welcome Back</Text>
+      
+      <YStack gap="$3">
+        <Input size="$5" placeholder="Username" value={userName} onChangeText={setUserName} autoCapitalize="none" />
+        <Input size="$5" placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+      </YStack>
+
+      <Button size="$5" theme="blue" onPress={handlePress}>
+        Sign In
+      </Button>
+
+    </YStack>
+    
+  );
+*/
+
+/*
+ return (
+   // YStack is a View with flex-direction: column
+    // 'p="$5"' uses your theme padding
+    <>
+    <ButtonDemo />
+    <Card p="$3" theme="blue" bg="$color8" rounded="$6">
+      <Text>Hello Text</Text>
+      </Card>
+    </>
+  );
+*/

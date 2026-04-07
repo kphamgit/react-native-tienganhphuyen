@@ -2,14 +2,20 @@
 
 //import { useNavigationContext } from '@/components/context/NavigationContext';
 import api from '@/api/axios';
+import ClickAndCloze from '@/components/ClickAndCloze';
 import MultipleInputs from '@/components/MultipleInputs';
-import { ChildQuestionRef, ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps } from '@/components/types';
+import ClozeExplanation from '@/components/question_attempt_results/ClozeExplanation';
+import DuoDragDrop from '@/components/reanimated/duolingo/DuoDragDrop';
+import { ChildQuestionRef, ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps, QuizAttemptProps } from '@/components/types';
+import VoiceRecorder from '@/components/VoiceRecorder';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Button, Keyboard, KeyboardEvent, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scheduleOnRN } from 'react-native-worklets';
+
 
 
 export default function QuizScreen() {
@@ -39,12 +45,24 @@ export default function QuizScreen() {
 
   const [keyboardHeight, setKeyboardHeight] = useState(0); // State to store keyboard height
 
+  //const nextQuestionId = useRef<number | null>(null);
+  const [nextQuestionId, setNextQuestionId] = useState<number | null>(null); // State to store the next question id returned from the server
+
+  const [quizAttempt, setQuizAttempt] = useState<QuizAttemptProps>(null as any);
+
+  const [endOfQuiz, setEndOfQuiz] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+
+
   useEffect(() => {
      api.post(`/api/quiz_attempts/get_or_create/${id}/`, { user_name: "test_user" })  // use a fixed user id for now
       .then((response) => {
          console.log("Fetched quiz attempt data:", response.data);
          setQuestion(response.data.question);
-        setQuestionAttemptId(response.data.question_attempt_id);
+         //setAttemptKey(k => k + 1);
+         setQuestionAttemptId(response.data.question_attempt_id);
+         setQuizAttempt(response.data.quiz_attempt);
+         setLoading(false);
          /*
 etched quiz attempt data: {"created": false, 
 "question": {"answer_key": "choice1/choice2", "audio_str": "", "button_cloze_options": null, "content": "choice 1 text/choice 2 text/choice 3 text/choice 4 text", "explanation": "", "format": 5, "hint": "", "id": 6, "instructions": null, "prompt": "", "question_number": 1, 
@@ -57,6 +75,7 @@ etched quiz attempt data: {"created": false,
       })
       .catch((error) => {
         console.error("Error fetching quiz attempt data:", error);
+        setLoading(false);
       });
    // const url = `${baseURL}/api/quiz_attempts/get_or_create/${quiz_id}/`;
     //console.log("Fetching quiz attempt data from url =", url);
@@ -67,7 +86,7 @@ etched quiz attempt data: {"created": false,
         setQuizAttemptData(response.data);
       })
       .catch((error) => {
-        console.error("Error fetching quiz attempt data:", error);
+        console.error("Error fetching quiz attempt data - inner:", error);
       });
     */
   },[id])
@@ -97,19 +116,57 @@ etched quiz attempt data: {"created": false,
     console.log("setCheckButton called with enabled:", value);
     setCheckButtonDisabled(!value); // Enable the Check button
   };
-
+// return <ClickAndCloze ref={childQuestionRef} content={content} choices={button_cloze_options || ''} enableCheckButton={setCheckButton} />;
   const displayQuestion = (format: string, content: string, button_cloze_options: string | undefined) => {
-    // console.log("displayQuestion called with format: ", format, " content: ", content, " button_cloze_options: ", button_cloze_options);
+      console.log("displayQuestion called with format: ", format, " content: ", content, " button_cloze_options: ", button_cloze_options);
        switch (format) {
         case '1':
           return <MultipleInputs ref={childQuestionRef} content={content} enableCheckButton={setCheckButton} />;
-       
+        case '2':
+          return questionAttemptId !== null ? (
+            <ClickAndCloze ref={childQuestionRef} content={content} choices={button_cloze_options || ''} questionAttemptId={questionAttemptId} enableCheckButton={setCheckButton} />
+          ) : null;
+        case '6':
+          return (
+            <DuoDragDrop ref={childQuestionRef} words={content.split('/')} extraData={questionAttemptId} enableCheckButton={setCheckButton} />
+           )
         default:
           //console.warn("Unknown question format:", format);
           return null;
      }
    };
  
+   /*
+  Important Note: Apr 6, 2026. (kpham) questionAttemptId is passed in DuoDragDrop as extraData so that 
+  the useEffect in DuoDragDrop that listens for changes in extraData can trigger a re-render when user 
+  immediately repeats a question. Without this extraData (questionAttemptId), the component doesn't get rerendered
+  because the words content doesn't change. 
+   */
+
+  /*
+ case '2':
+          return questionAttemptId !== null ? (
+            <ClickAndCloze ref={childQuestionRef} content={content} choices={button_cloze_options || ''} questionAttemptId={questionAttemptId} enableCheckButton={setCheckButton} />
+          ) : null;
+  */
+
+
+   useEffect(() => {
+    // Listen for keyboard events
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (event: KeyboardEvent) => {
+        //console.log("Keyboard shown with height: ", event.endCoordinates.height);
+        setKeyboardHeight(event.endCoordinates.height); // Get the keyboard height
+      }
+    );
+    // Cleanup listeners on unmount
+    return () => {
+      keyboardDidShowListener.remove();
+      //keyboardDidHideListener.remove();
+    };
+  }, []);
+
    const memoizedDisplayQuestion = useMemo(() => {
     if (!question) return null; // Return null if theQuestion is not available
     return displayQuestion(
@@ -121,7 +178,11 @@ etched quiz attempt data: {"created": false,
     
   const handleCheck = () => {
     //setShowQuestion(false); //
-    opacityResults.value = withTiming(1, { duration: 800 });
+    console.log("handleCheck called.");
+
+    Keyboard.dismiss();
+    setKeyboardHeight(0); // Reset keyboard height
+   
     console.log("Check button pressed. User answer from child component:", childQuestionRef.current?.getAnswer());
     //console.log("handleSubmit called for user ansswer=", childRef.current?.getAnswer());
     const url = `/api/question_attempts/${questionAttemptId}/process/`;
@@ -135,6 +196,18 @@ etched quiz attempt data: {"created": false,
         console.log("Assessment results from server:", assessment_results);
         console.log("Next question id from server:", next_question_id);
         setQuestionAttemptAssessmentResults(assessment_results);
+        opacityResults.value = withTiming(1, { duration: 800 });
+        if (next_question_id === undefined) {
+          console.log("No next question id returned from server. This was the last question in the quiz.");
+          setShowContinueButton(false);
+          setEndOfQuiz(true);
+        }
+        else {
+        //nextQuestionId.current = next_question_id ?? null; // server also returns next question id if there is a next question, otherwise returns null. We store this in a ref since it doesn't need to trigger a re-render
+        setNextQuestionId(next_question_id || null); // server also returns next question id if there is a next question, otherwise returns null. We store this in state so that when the user clicks "Continue", we have the next question id available to send to the server when we call createNextQuestionAttempt
+        setShowContinueButton(true);
+        }
+
         // update quizAttemptData.quiz_attempt
       }
       )
@@ -145,63 +218,43 @@ etched quiz attempt data: {"created": false,
     
 }
 
-  const handleCheckOld = async () => {
-    console.log("Check button pressed");
-    /*
-    Keyboard.dismiss();
-    setKeyboardHeight(0); // Reset keyboard height
-     opacityResults.value = withTiming(1, { duration: 800 });
-     setShowContinueButton(true);
+const createNextQuestionAttempt = async (quizAttemptId: number, questionId: number | null) => {
+  console.log("createNextQuestionAttempt called with quizAttemptId:", quizAttemptId, " questionId:", questionId);
+  const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt/`;
+   console.log("createNextQuestionAttempt POSTing to url =", url);
 
-     //const user_answer = childQuestionRef.current?.getAnswer(); // Get the answer from the child component
-     //const results = processQuestion(theQuestion?.format.toString(), theQuestion?.answer_key, user_answer );
-     const results  = childQuestionRef.current?.checkAnswer(theQuestion?.answer_key || '');
-     const url = `${domain}/api/question_attempts/${id}/update`;
-     const response = await fetch(url, {
-       method: "POST",
-       headers: {
-         "Content-Type": "application/json",
-       },
-       body: JSON.stringify(results),
-     });
- 
-     if (!response.ok) {
-       throw new Error(`HTTP error! status: ${response.status}`);
-     }
-     else {
-      //console.log("EEEEE results=", results);
-      if (results?.error_flag) {
-        error_player.play(); // Play the error sound
-      }
-      else {
-        success_player.play(); // Play the success sound
-      }
-       setQuestionAttemptResults(results); // Store results in state
-     }
-      if (theQuestion?.format === 4) {
-        console.log("RadioGroup format 4 checkAnswer called");
-        if (childQuestionRef.current) {
-          if (childQuestionRef.current?.checkAnswer) {
-            childQuestionRef.current.checkAnswer(theQuestion.answer_key || '');
-          }
-        }
-      }
-      else if (theQuestion?.format === 5) {
-      
-        if (childQuestionRef.current) {
-          if (childQuestionRef.current?.checkAnswer) {
-            childQuestionRef.current.checkAnswer(theQuestion.answer_key || '');
-          }
-        }
-      }
-      */
+  try {
+    const response = await api.post<{ question_attempt_id: number; question: QuestionProps }>(url, {
+      question_id: questionId,
+    });
+    //console.log("createNextQuestionAttempt , Received response from create_next_question_attempt:", response.data);
+
+    const { question_attempt_id, question } = response.data;
+    console.log("createNextQuestionAttempt, question_attempt_id from server:", question_attempt_id);
+    console.log("createNextQuestionAttempt, question data from server:", question);
+
+    setQuestion(question);
+    //setAttemptKey(k => k + 1);
+    setQuestionAttemptId(question_attempt_id);
+    // change opacity of question to original value (in case it was faded out when user clicked "Continue")
+    opacityImage.value = withTiming(1, { duration: 400 });
+     opacityResults.value = withTiming(0, { duration: 400 });
+     setShowContinueButton(false);
+    //setTimerDuration(question.timeout);
+    //counterRef.current?.start(); // Start the countdown timer for the next question
+    //nextQuestionId.current = null; // Reset nextQuestionId
+    setNextQuestionId(null); // Reset nextQuestionId in state to trigger a re-render and hide the "Continue" button until the user answers the next question and we get a new nextQuestionId from the server
+    
+  } catch (error) {
+    console.error("Error creating next question attempt:", error);
   }
+};
 
   const renderButtonRow = (format: string) => {
     return (
       <>
         {showContinueButton ? (
-          <View style={{ backgroundColor: 'blue', }}>
+          <View style={{ backgroundColor: 'lightgreen', }}>
           <Button title="Continue" color='white'  onPress={handleContinue} />
           </View>
         ) : (
@@ -216,17 +269,27 @@ etched quiz attempt data: {"created": false,
 
   const handleContinue = async () => {
     //translateX.value += 50;
-    /*
+    //Continue button pressed. Starting opacity animation to fade out results and question...");
     opacityResults.value = withTiming(0, { duration: 400 });
     //opacityImage.value = withTiming(0, { duration: 100 });
     opacityImage.value = withTiming(0, { duration: 400 }, async (finished) => {
       if (finished) {
         console.log("XXXXXX Opacity animation to 0 has finished.");
         console.log("XXXXXX Now setting questionFinished to true.");
-        runOnJS(proceedToNextQuestion)(true);
+        // load the next 
+        // log quizAttemp and nextQuestionId 
+        console.log("Current quizAttempt data in state:", quizAttempt);
+        //console.log("Current nextQuestionId in ref:", nextQuestionId.current);
+        
+        
+    // We are on the UI Thread here.
+        // We MUST use scheduleOnRN to "call back" to the JS thread.
+        scheduleOnRN(createNextQuestionAttempt, quizAttempt.id, nextQuestionId) // we pass the quiz attempt id and the next question id to createNextQuestionAttempt, which will make the API call to create the next question attempt and update state with the new question data when it receives the response from the server. We have to use scheduleOnRN to call this function from the UI thread since we are currently in a worklet (the withTiming callback), and we need to call back to the JS thread to update state and trigger a re-render with the new question data.;
+        //runOnJS(createNextQuestionAttempt(quizAttempt.id, nextQuestionId.current) )
+        //runOnJS(proceedToNextQuestion)(true);
       }
     });
-    */
+    
   };
 
   const animatedStylesResults = useAnimatedStyle(() => ({
@@ -238,20 +301,52 @@ etched quiz attempt data: {"created": false,
     opacity: opacityImage.value,
   }));
 
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F5F5' }}>
+        <ActivityIndicator size="large" color="#4A90E2" />
+      </View>
+    );
+  }
 
+  if (endOfQuiz) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F5F5', padding: 24 }}>
+        <Text style={{ fontSize: 28, fontWeight: '700', color: '#1C1C1E', marginBottom: 8 }}>Quiz Complete</Text>
+        <Text style={{ fontSize: 16, color: '#6C6C70', marginBottom: 32 }}>
+          Score: {quizAttempt?.score ?? 0}
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: '#4A90E2', paddingVertical: 14, paddingHorizontal: 40, borderRadius: 12 }}
+          onPress={() => router.replace(`/units/${unitId}`)}
+        >
+          <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>Back to Unit</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 //Array.isArray(categoryName) ? categoryName[0] : categoryName,
+
+  const onVoiceRecordingResults = (transcript: string) => {
+    console.log("Received voice recording results in parent component (QuizScreen): ", transcript);
+    // Here you can decide what to do with the transcript. For example, you might want to set it as the user's answer and enable the Check button:
+    //childQuestionRef.current?.setAnswer(transcript); // Assuming your child component has a method to set the answer programmatically
+    //setCheckButton(true); // Enable the Check button since we now have an answer from the voice recording
+  }
+
   return (
     <>
      <Stack.Screen 
         options={{
-          headerTitle: "Take Quiz" , // use an empty string as fallback to avoid "flickering" when categoryName is initially undefined
+          headerTitle: quizName ?? "Quiz",
           headerStyle: {
-            backgroundColor: 'orange', // Set the background color of the header
+            backgroundColor: '#FFFFFF',
           },
+          headerTintColor: '#1C1C1E',
           headerTitleStyle: {
-            color: 'white', // Set the color of the title text
-            fontWeight: 'bold', // Make the title text bold
-            fontSize: 16, // Set the font size of the title text
+            color: '#1C1C1E',
+            fontWeight: 'bold',
+            fontSize: 16,
           },
           headerLeft: () => (
             <HeaderBackButton onPress={() => {
@@ -265,64 +360,56 @@ etched quiz attempt data: {"created": false,
         }}
       />
       <View style={[
+        styles.container,
         {
           // Manually apply insets to avoid the notch and home indicator
           paddingTop: insets.top,
           paddingBottom: insets.bottom
         }
       ]}>
-         <View style={[
-              {
-                // Manually apply insets to avoid the notch and home indicator
-                paddingTop: insets.top,
-                paddingBottom: insets.bottom
-              }
-            ]}>
-        <Animated.View style={[{ justifyContent: 'space-around', alignItems: 'center', height: '75%', backgroundColor: 'orange' }, animatedStylesImage]}>
+        <Animated.View style={[{ justifyContent: 'space-around', height: '75%', backgroundColor: 'blue' }, animatedStylesImage]}>
          
            <View style={{ padding: 10 , marginBottom: 0, backgroundColor: 'lightblue', borderRadius: 10}}>
+            <VoiceRecorder onResult={onVoiceRecordingResults} />
           <Text>{ question?.prompt}</Text>
+          <Text>{ question?.explanation}</Text>
           </View>
            <View style={styles.questionContainer}>
                       {memoizedDisplayQuestion}
           </View>
         </Animated.View>
+    
         <Animated.View style={[styles.resultsContainer, animatedStylesResults]}>
-          <Text>
-            QUESTION RESULTS
-            </Text>
+          <View style={{ flex: 1, flexDirection: "row", padding: 10, marginBottom: 0, backgroundColor: 'lightblue', borderRadius: 10 }}>
+            {questionAttemptAssessmentResults?.error_flag
+              &&
+              <ClozeExplanation content={question?.content || ''} processQuestionResults={questionAttemptAssessmentResults} />
+              
+        }
+          </View>
+        
+     
+        
         </Animated.View>
+
         <View style= {[styles.buttonContainer, { marginBottom: keyboardHeight > 0 ? keyboardHeight : 25 }]}>
          {renderButtonRow(question?.format.toString() || '')} 
         </View>
       </View>
         
-
-      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  safe_area_container: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    backgroundColor: 'blue',
-},
+ 
   container: {
-    //flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1,
+    backgroundColor: 'green',
   },
-  questionContainer: {  
-    flex: 1, // the parent allows the children to expand fully.
-    width: '90%', // allows children take up full screen width
-    
-    //position: 'relative',
-    //top: 0,
-    //left: 0,
-  
+  questionContainer: {
+    flex: 1,
+    width: '100%',
  },
   resultsContainer: { 
     position: 'absolute',  // meaning it is positioned relative to the viewport (screen)
@@ -331,9 +418,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center', 
     alignItems: 'center', 
-    backgroundColor: 'gray', 
+    backgroundColor: 'green', 
     height: '30%' ,
-    zIndex: -1,
+    zIndex: 5,
     //opacity: 0,
   },
   buttonContainer: {
@@ -348,7 +435,7 @@ const styles = StyleSheet.create({
     //backgroundColor: 'green', 
     //height: '10%' ,
     //opacity: 1,
-    zIndex: 0,  // Ensure the button container is above the results container
+    zIndex: 7,  // Ensure the button container is above the results container
   },
 });
 
