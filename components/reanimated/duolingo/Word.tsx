@@ -33,6 +33,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
   },
   text: {
-    fontSize: 18,
+    fontSize: 16,
   },
 });

@@ -84,7 +84,7 @@ interface InnerProps {
 
       useImperativeHandle(ref, () => ({
         getAnswer: () => {
-          console.log('getAnswer droppedWords:', droppedWords);
+          //console.log('getAnswer droppedWords:', droppedWords);
           return droppedWords.filter(Boolean).join('/');
         }
       }));
@@ -106,19 +106,20 @@ function ClickAndClozeInner({inputFields: initialInputFields, wordBankWords, ena
     
 
 const fontSize = 16;
-//const wordHeight = 30;
-const wordHeight = fontSize * 1.5; // the 1.5 is just a multiplier to add some extra padding to the word height,
-const wordGap = 8;
+const [wordHeight, setWordHeight] = useState(fontSize * 2);
+const slotHeightMeasured = React.useRef(false);
+const wordGap = 10;
 
-const lineHeight =  wordHeight * 1.2; // the 1.2 is just a multiplier to add some 
-// extra space/ga between lines
-const lineGap = lineHeight - wordHeight; // the gap between lines is the line height minus the word height
-// console.log("lineHeight: ", lineHeight, "wordHeight=", wordHeight, "lineGap: ", lineGap);
+const lineHeight = wordHeight * 1.2;
+const lineGap = lineHeight - wordHeight;
 const [containerWidth, setContainerWidth] = useState(0);
-// containerWidth is the width of the container that holds the words. It is set inside ComputeWordLayout's onLayout,
-//  which is called after ComputeWordLayout finishes rendering the words and measures their layout.
 
 const [layout, setLayout] = useState<LayoutType | null>(null);
+
+React.useEffect(() => {
+  setLayout(null);
+  setContainerWidth(0);
+}, [wordHeight]);
 
 const fillCount = inputFields?.filter(i => i.type === 'fill').length ?? 0;
 const [fillSlotPositions, setFillSlotPositions] = useState<{x: number, y: number}[]>([]);
@@ -144,14 +145,18 @@ const onInputRowLayout = (e: LayoutChangeEvent) => {
 
  // In onFillSlotLayout:
 const onFillSlotLayout = (e: LayoutChangeEvent, fillIndex: number) => {
-  const { x, y, width } = e.nativeEvent.layout;
-  console.log(`fillSlot[${fillIndex}]: x=${x}, y=${y}, width=${width}`);
+  const { x, y, height } = e.nativeEvent.layout;
+  console.log(`onFillSlotLayout for fill index ${fillIndex}:  height=${height}`);
   measuredFills.current[fillIndex] = { x, y };
+  if (fillIndex === 0 && !slotHeightMeasured.current) {
+    slotHeightMeasured.current = true;
+    setWordHeight(height);
+  }
   trySetFillPositions();
 };
 
 
-const wordBankOffsetY = 20  // the offset (distance) between the top of the word bank
+const wordBankOffsetY = 30  // the offset (distance) between the top of the word bank
 // and the bottom of the answer area. This is used to position the word bank below the answer area,
 // with some gap in between.
 
@@ -289,7 +294,7 @@ const wordElements = useMemo(() => {
   return (
     <GestureHandlerRootView>
     <View style={styles.container}>
-        <DebugGrid width={dimensions.width} height={dimensions.height} />
+       
       <View style={styles.inputRow} onLayout={onInputRowLayout}>
         {(() => {
           let fillIndex = 0;
@@ -299,7 +304,8 @@ const wordElements = useMemo(() => {
             ) : (
               <Text
                 key={item.id}
-                style={[item.readyForFill ? styles.fillLotReady : styles.fillLot, { lineHeight: wordHeight }]}
+                style={[item.readyForFill ? styles.fillLotReady : styles.fillLot, 
+                  { lineHeight: wordHeight, height: wordHeight }]}
                 onLayout={(e) => onFillSlotLayout(e, fillIndex++)}
               >
                 {longestText}
@@ -336,8 +342,8 @@ const wordElements = useMemo(() => {
 
 const styles = StyleSheet.create({
   container: {
-     flex: 0,
-    backgroundColor: 'lightgray',
+    flex: 0,
+    backgroundColor: 'yellow',
     margin: 10,
   },
   inputRow: {
@@ -346,16 +352,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     //paddingHorizontal: 5,
     alignContent: 'center',
-    paddingVertical: 10,
-    paddingTop: 20,
+    //paddingVertical: 10,
+    //paddingTop: 20,
     rowGap: 10,
   },
   inputText: {
     fontSize: 16,
+    paddingHorizontal: 8,
   },
   fillLot: {
     fontSize: 16,
-    paddingHorizontal: 4,
+    paddingHorizontal: 10,
     borderWidth: 2,
     borderColor: 'gray',
     borderRadius: 10,
@@ -365,11 +372,12 @@ const styles = StyleSheet.create({
 
   fillLotReady: {
     fontSize: 16,
-    paddingHorizontal: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 0,
     borderWidth: 2,
     borderColor: 'gray',
     borderRadius: 10,
-    backgroundColor: 'rgba(243, 245, 235, 0.3)',
+    backgroundColor:  'white',
     color: 'transparent',
   },
  
