@@ -3,9 +3,10 @@ import { ChildQuestionRef } from "@/components/types";
 import React, { Fragment, JSX, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { StyleSheet, View, type LayoutRectangle, type StyleProp, type ViewStyle } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useSharedValue } from "react-native-reanimated";
-import ClickableWord from "./ClickableWord";
+import { runOnJS, useAnimatedReaction, useSharedValue } from "react-native-reanimated";
+import ClickableWord, { ClickableWordProps } from "./ClickableWord";
 import Lines from "./Lines";
+import SortableWord from "./SortableWord";
 import Placeholder from "./Placeholder";
 import { calculateLayout, type Offset } from "./SentenceLayout";
 import type { DuoAnimatedStyleWorklet, OnDropFunction } from "./types";
@@ -190,7 +191,7 @@ The offsets array itself (its references) is not changed, only the .value proper
       {wordElements.map((child, index) => (
         <Fragment key={`${words[index]}-f-${index}`}>
           {renderPlaceholder === null ? null : <PlaceholderComponent style={wordStyles[index] as any} />}
-          <ClickableWord
+          <WordProxy
             offsets={offsets}
             index={index}
             rtl={Boolean(rtl)}
@@ -206,13 +207,34 @@ The offsets array itself (its references) is not changed, only the .value proper
             parentFunc={enable_checkButton}
           >
             {child}
-          </ClickableWord>
+          </WordProxy>
         </Fragment>
       ))}
     </View>
     </GestureHandlerRootView>
   );
 });
+
+type WordProxyProps = Omit<ClickableWordProps, 'children'> & {
+  children: JSX.Element;
+};
+
+function WordProxy({ offsets, index, children, ...rest }: WordProxyProps) {
+  const offset = offsets[index];
+  const [isInBank, setIsInBank] = React.useState(offset.order.value === -1);
+
+  useAnimatedReaction(
+    () => offset.order.value === -1,
+    (curr, prev) => {
+      if (curr !== prev) runOnJS(setIsInBank)(curr);
+    }
+  );
+
+  if (isInBank) {
+    return <ClickableWord offsets={offsets} index={index} {...rest}>{children}</ClickableWord>;
+  }
+  return <SortableWord offsets={offsets} index={index} {...rest}>{children}</SortableWord>;
+}
 
 interface ComputeWordLayoutProps {
   children: JSX.Element[];

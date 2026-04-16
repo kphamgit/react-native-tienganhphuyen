@@ -1,12 +1,11 @@
-import React, { Fragment, useMemo, useState } from 'react';
+import { ChildQuestionRef } from '@/components/types';
+import React, { Fragment, useImperativeHandle, useMemo, useState } from 'react';
 import { LayoutChangeEvent, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
 import ClickableWordNew from './ClickableWordNew';
 import ComputeWordLayout from './ComputeWordLayout';
 import DebugGrid from './DebugGrid';
-import Lines from './Lines';
-import Placeholder from './Placeholder';
 import Word from './Word';
 import WordContext from './WordContext';
 
@@ -48,14 +47,16 @@ function parseContent(content: string): { inputFields: InputItem[]; wordBankWord
 
 interface Props {
    content: string;
-   enableCheckButton: (value: boolean) => void; // Function to enable the Check button
+   enableCheckButton: (value: boolean) => void;
    distractors?: string[];
+   extraData?: any;
 }
 
 interface InnerProps {
   inputFields: InputItem[];
   wordBankWords: string[];
-  enableCheckButton: (value: boolean) => void; // Function to enable the Check button
+  enableCheckButton: (value: boolean) => void;
+  setDroppedWords: (words: (string | null)[]) => void;
 }
 
 /*
@@ -66,20 +67,40 @@ interface InnerProps {
   };
 */
 
+//const DuoDragDrop= React.forwardRef<ChildQuestionRef, DuoDragDropProps>((props, ref) => {
+//function ClickAndCloze({content, distractors = [], enableCheckButton}: Props) {
+  const ClickAndCloze = React.forwardRef<ChildQuestionRef, Props>(
+    ({ content, distractors = [], enableCheckButton, extraData }, ref) => {
+      const { inputFields, wordBankWords } = parseContent(content);
+      const allWords = [...wordBankWords, ...distractors];
+      const fillCount = inputFields.filter(i => i.type === 'fill').length;
+      const [droppedWords, setDroppedWords] = useState<(string | null)[]>(
+        Array(fillCount).fill(null)
+      );
 
-function ClickAndCloze({content, distractors = [], enableCheckButton}: Props) {
-  const { inputFields, wordBankWords } = parseContent(content);
-  const allWords = [...wordBankWords, ...distractors];
-  return <ClickAndClozeInner key={content} inputFields={inputFields} wordBankWords={allWords} enableCheckButton={enableCheckButton} />;
-}
+      React.useEffect(() => {
+        setDroppedWords(Array(fillCount).fill(null));
+      }, [content, extraData]);
 
-function ClickAndClozeInner({inputFields: initialInputFields, wordBankWords, enableCheckButton}: InnerProps) {
+      useImperativeHandle(ref, () => ({
+        getAnswer: () => {
+          console.log('getAnswer droppedWords:', droppedWords);
+          return droppedWords.filter(Boolean).join('/');
+        }
+      }));
+
+      const innerKey = `${content}-${JSON.stringify(extraData)}`;
+      return <ClickAndClozeInner key={innerKey} inputFields={inputFields} wordBankWords={allWords} enableCheckButton={enableCheckButton} setDroppedWords={setDroppedWords} />;
+    }
+  );
+  
+
+function ClickAndClozeInner({inputFields: initialInputFields, wordBankWords, enableCheckButton, setDroppedWords}: InnerProps) {
 
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
     const [inputFields, setInputFields] = useState<InputItem[]>(initialInputFields);
 
-      
     const [longestText, setLongestText] = useState('');
 
     
@@ -104,15 +125,6 @@ const [fillSlotPositions, setFillSlotPositions] = useState<{x: number, y: number
 const [slotWidth, setSlotWidth] = useState(wordHeight * 3);
 const measuredFills = React.useRef<({x: number, y: number} | null)[]>(Array(fillCount).fill(null));
 const inputRowLayout = React.useRef<{x: number, y: number} | null>(null);
-
-
-
-/*
- [{"id": "word_0", "type": "text", "value": "I"}, {"id": "drop_box_0", "type": "input", "value": " "}, 
- {"id": "word_2", "type": "text", "value": "and"}, {"id": "word_3", "type": "text", "value": "you"}, 
- {"id": "drop_box_1", "type": "input", "value": " "}, {"id": "word_5", "type": "text", 
- "value": "and"}, {"id": "word_6", "type": "text", "value": "she"}, {"id": "drop_box_2", "type": "input", "value":
-*/
 
 const trySetFillPositions = () => {
   if (inputRowLayout.current && measuredFills.current.every(p => p !== null)) {
@@ -233,14 +245,19 @@ const wordElements = useMemo(() => {
   const wordBankRows = 2; // word bank wraps to at most 2 rows
   const wordBankHeight = wordBankRows * (wordHeight + wordGap) + wordBankOffsetY * 2;
 
-  const PlaceholderComponent =  Placeholder;
-  const LinesComponent = Lines;
-
-  const enable_checkButton = () => {
-     //console.log("enable_checkButton called from Child1");
-  }
+  //const PlaceholderComponent =  Placeholder;
+  //const LinesComponent = Lines;
 
   const onSlotChange = (slotIndex: number | null) => {
+    const newDroppedWords: (string | null)[] = Array(fillCount).fill(null);
+    offsets.forEach((o, wordIndex) => {
+      if (o.order.value !== -1) {
+        newDroppedWords[o.order.value] = wordBankWords[wordIndex];
+      }
+    });
+    setDroppedWords(newDroppedWords);
+    console.log('droppedWords:', newDroppedWords);
+
     setTimeout(() => setInputFields(prev => {
       const fills = prev.filter(i => i.type === 'fill');
       return prev.map(item => {
@@ -268,16 +285,6 @@ const wordElements = useMemo(() => {
     }), 700);
   };
 
-  // offsets state is passed into ClickableWordNew for animation, it is also used
-  // to recalculate the layout whenever clicks on a word, either to move it 
-  // from bank to answer area or vice versa, or to rearrange the order of words in the answer area.
-/*
-  <View
-                key={item.id}
-                style={[styles.fillSlot, { width: slotWidth, height: wordHeight }]}
-                onLayout={(e) => onFillSlotLayout(e, fillIndex++)}
-              />
-*/
 
   return (
     <GestureHandlerRootView>
@@ -351,7 +358,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderWidth: 2,
     borderColor: 'gray',
-    backgroundColor: 'rgba(0,0,255,0.3)',
+    borderRadius: 10,
+    backgroundColor: 'rgba(155, 155, 177, 0.3)',
     color: 'transparent',
   },
 
@@ -360,7 +368,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderWidth: 2,
     borderColor: 'gray',
-    backgroundColor: 'yellow',
+    borderRadius: 10,
+    backgroundColor: 'rgba(243, 245, 235, 0.3)',
     color: 'transparent',
   },
  

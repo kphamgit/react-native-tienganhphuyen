@@ -1,5 +1,5 @@
-import { AudioPlayer, AudioSource } from 'expo-audio';
-import React, { memo, type ReactElement, useCallback, useState } from 'react';
+import { AudioPlayer, AudioSource, createAudioPlayer } from 'expo-audio';
+import React, { memo, type ReactElement, useCallback, useEffect, useState } from 'react';
 import { StyleSheet, type ViewStyle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -70,6 +70,14 @@ They would only capture the value at render time and never react to changes driv
 
 useDerivedValue is essentially the worklet equivalent of useMemo — but reactive to shared value changes on the UI thread rather than React state changes on the JS thread.
   */
+
+useEffect(() => {
+    const word = children.key?.split('-')[0];
+    const my_mp3 = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/${word}.mp3`;
+    setMp3(my_mp3);
+    setPlayer(createAudioPlayer(my_mp3));
+  }, [children]);
+
 
   const translateX = useDerivedValue(() =>
     withTiming(

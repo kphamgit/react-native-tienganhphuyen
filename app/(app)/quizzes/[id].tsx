@@ -4,7 +4,7 @@
 import api from '@/api/axios';
 import MultipleInputs from '@/components/MultipleInputs';
 import ClozeExplanation from '@/components/question_attempt_results/ClozeExplanation';
-import ClickAndCloze from '@/components/reanimated/clickandcloze/ClickAndClozeLatest';
+import ClickAndCloze from '@/components/reanimated/clickandcloze/ClickAndCloze';
 import DuoDragDrop from '@/components/reanimated/duolingo/DuoDragDrop';
 import { ChildQuestionRef, ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps, QuizAttemptProps } from '@/components/types';
 import VoiceRecorder from '@/components/VoiceRecorder';
@@ -124,7 +124,7 @@ etched quiz attempt data: {"created": false,
           return <MultipleInputs ref={childQuestionRef} content={content} enableCheckButton={setCheckButton} />;
         case '2':
           return questionAttemptId !== null ? (
-             <ClickAndCloze content={question?.content || ''} distractors={question?.button_cloze_options?.split('/')} enableCheckButton={setCheckButton}  />
+             <ClickAndCloze ref={childQuestionRef} content={question?.content || ''} distractors={question?.button_cloze_options?.split('/')} extraData={questionAttemptId} enableCheckButton={setCheckButton} />
           ) : null;
         case '6':
           return (
