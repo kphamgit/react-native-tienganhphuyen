@@ -155,7 +155,6 @@ export const calculateLayout = (
   "worklet";
   const offsets = input.filter(isNotInBank).sort(byOrder);
 
-  console.log("******** calculateLayout offsets", offsets.map((o) => ({ order: o.order.value, width: o.width.value })));
   if (offsets.length === 0) {
     return;
   }

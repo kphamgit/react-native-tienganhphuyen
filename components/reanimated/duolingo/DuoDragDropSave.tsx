@@ -5,14 +5,14 @@ import { StyleSheet, View, type LayoutRectangle, type StyleProp, type ViewStyle 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSharedValue } from "react-native-reanimated";
 import ClickableWord from "./ClickableWord";
+import { calculateLayout, type Offset } from "./Layout";
 import Lines from "./Lines";
 import Placeholder from "./Placeholder";
-import { calculateLayout, type Offset } from "./SentenceLayout";
 import type { DuoAnimatedStyleWorklet, OnDropFunction } from "./types";
 import Word from "./Word";
 import WordContext from "./WordContext";
 
-export interface DuoDragDropProps {
+interface DuoDragDropProps {
   /** List of words */
   words: string[];
   /** Re-renders the words when this value changes. */
@@ -56,7 +56,7 @@ export interface DuoDragDropProps {
   enableCheckButton: (value: boolean) => void; //
 }
 
-const DuoDragDrop= React.forwardRef<ChildQuestionRef, DuoDragDropProps>((props, ref) => {
+const DuoDragDropSave= React.forwardRef<ChildQuestionRef, DuoDragDropProps>((props, ref) => {
   const {
     words,
     extraData,
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
 const DuoDragDropInstance = React.forwardRef<ChildQuestionRef, DuoDragDropProps>((props, ref) => {
   const wordsKey = JSON.stringify(props.words) + JSON.stringify(props.extraData);
   // We need to re-mount the component if words are modified to avoid hook mismatches. "useSharedValue" is initialized on every word
-  return <DuoDragDrop ref={ref} {...props} key={wordsKey} />;
+  return <DuoDragDropSave ref={ref} {...props} key={wordsKey} />;
 });
 
 export default React.memo(DuoDragDropInstance);

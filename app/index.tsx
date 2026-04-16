@@ -10,6 +10,7 @@ export default function Index() {
         alignItems: "center",
       }}
     >
+
      <Home />
     </View>
   );

@@ -168,10 +168,8 @@ interface ClickAndClozeProps extends TakeQuestionProps {
       const {width, x, y, height} = event.nativeEvent.layout;
          //console.log(" drop box container, item id = ", item_id);
          const index = parseInt(item_id.split('_')[2]); // Extract the index from the item id
-      //console.log("&&&&&&&&&&&&&&&&& DropBoxContainer Layout::: width=", width, "height = ", height, " x = ", x, "y = ", y);
-         //console.log(" &&&&&&&&&&&&&&&&&  handleDropBoxContainerOnLayout::: width=", width, "height = ", height, " x = ", x, "y = ", y);
          if (width === 0 || height === 0) {
-        console.warn("DropBoxContainer width or height is 0, skipping layout update.");
+    
         return; // Skip if width or height is 0
       }
         const newDropBoxContainerRect = {
@@ -180,7 +178,6 @@ interface ClickAndClozeProps extends TakeQuestionProps {
           x2: x + width,
           y2: y + height,
         };
-        //dropBoxContainerRects.current.push(newDropBoxContainerRect);
         dropBoxContainerRects.current[index] = newDropBoxContainerRect; // Update the specific index
     };
   
@@ -545,11 +542,11 @@ const styles = StyleSheet.create({
 },
 
   clickableItem: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 10,
-    backgroundColor: 'lightgray',
+    backgroundColor: 'red',
     marginVertical: 10,
-    borderRadius: 5,
+    borderRadius: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -607,11 +604,11 @@ const styles = StyleSheet.create({
     },
 
     dropBoxContainer: 
-    { flexDirection: 'column', 
+    { flexDirection: 'row', 
       alignItems: 'center',
       //backgroundColor: 'yellow',
-      borderBottomWidth: 1,
-      borderBottomColor: 'red',
+      borderBottomWidth: 0,
+      borderBottomColor: 'yellow',
     },
 
     dropBox: {

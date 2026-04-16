@@ -2,9 +2,9 @@
 
 //import { useNavigationContext } from '@/components/context/NavigationContext';
 import api from '@/api/axios';
-import ClickAndCloze from '@/components/ClickAndCloze';
 import MultipleInputs from '@/components/MultipleInputs';
 import ClozeExplanation from '@/components/question_attempt_results/ClozeExplanation';
+import ClickAndCloze from '@/components/reanimated/clickandcloze/ClickAndClozeLatest';
 import DuoDragDrop from '@/components/reanimated/duolingo/DuoDragDrop';
 import { ChildQuestionRef, ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps, QuizAttemptProps } from '@/components/types';
 import VoiceRecorder from '@/components/VoiceRecorder';
@@ -57,7 +57,7 @@ export default function QuizScreen() {
   useEffect(() => {
      api.post(`/api/quiz_attempts/get_or_create/${id}/`, { user_name: "test_user" })  // use a fixed user id for now
       .then((response) => {
-         console.log("Fetched quiz attempt data:", response.data);
+         // console.log("Fetched quiz attempt data:", response.data);
          setQuestion(response.data.question);
          //setAttemptKey(k => k + 1);
          setQuestionAttemptId(response.data.question_attempt_id);
@@ -124,7 +124,7 @@ etched quiz attempt data: {"created": false,
           return <MultipleInputs ref={childQuestionRef} content={content} enableCheckButton={setCheckButton} />;
         case '2':
           return questionAttemptId !== null ? (
-            <ClickAndCloze ref={childQuestionRef} content={content} choices={button_cloze_options || ''} questionAttemptId={questionAttemptId} enableCheckButton={setCheckButton} />
+             <ClickAndCloze content={question?.content || ''} />
           ) : null;
         case '6':
           return (
@@ -144,9 +144,20 @@ etched quiz attempt data: {"created": false,
    */
 
   /*
+        case '2':
+          return questionAttemptId !== null ? (
+            <ClickAndClozeNew ref={childQuestionRef} words={["one","two", ]} extraData={questionAttemptId} enableCheckButton={setCheckButton} />
+          ) : null;
+  */
+
+  /*
  case '2':
           return questionAttemptId !== null ? (
             <ClickAndCloze ref={childQuestionRef} content={content} choices={button_cloze_options || ''} questionAttemptId={questionAttemptId} enableCheckButton={setCheckButton} />
+          ) : null;
+
+              return questionAttemptId !== null ? (
+            <ClickAndClozeNew ref={childQuestionRef} words={["one", "two", "three", "four"]} extraData={questionAttemptId} enableCheckButton={setCheckButton} />
           ) : null;
   */
 
