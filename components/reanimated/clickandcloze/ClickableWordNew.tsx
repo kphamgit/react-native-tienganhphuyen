@@ -21,6 +21,7 @@ export interface ClickableWordNewProps {
   wordBankOffsetY: number;
   fillSlotPositions: {x: number, y: number}[];
   parentFunc: () => void;
+  onSlotChange: (slotIndex: number | null) => void;
 }
 
 const ClickableWordNew = ({
@@ -32,6 +33,7 @@ const ClickableWordNew = ({
   fillSlotPositions,
   onDrop,
   parentFunc,
+  onSlotChange,
 }: ClickableWordNewProps) => {
   const offset = offsets[index];
   const isAnimating = useSharedValue(false);
@@ -158,9 +160,11 @@ useDerivedValue is essentially the worklet equivalent of useMemo — but reactiv
         const chipWidth = offset.width.value;
         offset.x.value = fillSlotPositions[slotIndex].x + (slotWidth - chipWidth) / 2 - 1;
         offset.y.value = fillSlotPositions[slotIndex].y;
+        runOnJS(onSlotChange)(slotIndex);
       }
     } else {
       offset.order.value = -1;
+      runOnJS(onSlotChange)(null);
     }
 
     isAnimating.value = true;

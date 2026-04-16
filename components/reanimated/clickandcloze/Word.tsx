@@ -9,7 +9,7 @@ export interface WordProps {
 }
 
 export default function Word({ containerStyle, textStyle }: WordProps) {
-  const { wordHeight, text, wordGap } = useContext(WordContext);
+  const { wordHeight, text } = useContext(WordContext);
 
   //useEffect(() => {
    // console.log("\nWord rendered with text:", text, 'and INPUT wordHeight: ', wordHeight, "INPUT wordGap",wordGap);
@@ -19,7 +19,7 @@ export default function Word({ containerStyle, textStyle }: WordProps) {
 //style={[{ height: wordHeight, margin: wordGap, marginBottom: wordGap * 2 }, styles.container, containerStyle]}
   return (
     <View
-    style={[{ height: wordHeight, marginBottom: wordGap * 2 }, styles.container, containerStyle]}
+    style={[{ height: wordHeight }, styles.container, containerStyle]}
     >
       <Text style={[styles.text, textStyle]} allowFontScaling={false} numberOfLines={1}>
         {text}

@@ -62,7 +62,7 @@ export default function ComputeWordLayout({
     <>
       <DebugGrid width={dimensions.width} height={dimensions.height} />
       <View
-        style={[styles.computeWordLayoutContainer, styles["center"], { columnGap: wordGap * 2, rowGap: wordGap * 2 }]}
+        style={[styles.computeWordLayoutContainer, styles["center"], { columnGap: wordGap * 2, rowGap: wordGap }]}
         onLayout={(e) => {
           // console.log("\n>>>>>>>> ComputeWordLayout: onLayout for (container): width=", e.nativeEvent.layout.width, "height=", e.nativeEvent.layout.height);
           setDimensions({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height });

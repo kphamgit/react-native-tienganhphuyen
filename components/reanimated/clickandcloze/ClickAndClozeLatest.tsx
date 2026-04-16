@@ -30,7 +30,6 @@ function parseContent(content: string): { inputFields: InputItem[]; wordBankWord
     .filter(part => part.length > 0)
     .map((part, index) => {
       if (part.startsWith('[') && part.endsWith(']')) {
-        console.log(`%%%%%%%%%%%%%%%%%%% parseContent: index = ${index}`);
         // if this is the first fill, mark it as readyForFill, otherwise false.
         //  The first fill will be the one that is automatically focused and ready to accept
         //  input from the word bank
@@ -65,7 +64,7 @@ function ClickAndClozeInner({inputFields: initialInputFields, wordBankWords}: In
 
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-    const [inputFields] = useState<InputItem[]>(initialInputFields);
+    const [inputFields, setInputFields] = useState<InputItem[]>(initialInputFields);
 
       
     const [longestText, setLongestText] = useState('');
@@ -205,7 +204,7 @@ const wordElements = useMemo(() => {
                     wordGap={wordGap}
                     wordBankOffsetY={wordBankOffsetY}
                     onContainerWidth={setContainerWidth}
-                    onSlotWidth={setSlotWidth}
+                    
                     onLongestText={setLongestText}
                 >
                     {wordElements}
@@ -226,6 +225,34 @@ const wordElements = useMemo(() => {
   const enable_checkButton = () => {
      //console.log("enable_checkButton called from Child1");
   }
+
+  const onSlotChange = (slotIndex: number | null) => {
+    setInputFields(prev => {
+      const fills = prev.filter(i => i.type === 'fill');
+      return prev.map(item => {
+        if (item.type !== 'fill') return item;
+        if (slotIndex === null) {
+          // word returned to bank — mark the first unoccupied slot as ready
+          const occupiedSlots = offsets
+            .map((o, i) => o.order.value !== -1 ? o.order.value : -1)
+            .filter(v => v !== -1);
+          const fillIndex = fills.indexOf(item);
+          const isOccupied = occupiedSlots.includes(fillIndex);
+          const firstFreeIndex = fills.findIndex((_, fi) => !occupiedSlots.includes(fi));
+          return { ...item, readyForFill: fillIndex === firstFreeIndex && !isOccupied };
+        } else {
+          // word placed — mark that slot as not ready, next free slot as ready
+          const fillIndex = fills.indexOf(item);
+          const occupiedSlots = offsets
+            .map(o => o.order.value !== -1 ? o.order.value : -1)
+            .filter(v => v !== -1);
+          occupiedSlots.push(slotIndex);
+          const firstFreeIndex = fills.findIndex((_, fi) => !occupiedSlots.includes(fi));
+          return { ...item, readyForFill: fillIndex === firstFreeIndex };
+        }
+      });
+    });
+  };
 
   // offsets state is passed into ClickableWordNew for animation, it is also used
   // to recalculate the layout whenever clicks on a word, either to move it 
@@ -271,6 +298,7 @@ const wordElements = useMemo(() => {
               wordBankOffsetY={wordBankOffsetY}
               fillSlotPositions={fillSlotPositions}
               parentFunc={enable_checkButton}
+              onSlotChange={onSlotChange}
             >
               {child}
             </ClickableWordNew>
@@ -315,7 +343,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 4,
     borderWidth: 2,
-    backgroundColor: 'rgba(0,0,255,0.3)',
+    backgroundColor: 'red',
     color: 'transparent',
   },
  
