@@ -20,7 +20,7 @@ export interface ClickableWordNewProps {
   wordHeight: number;
   wordBankOffsetY: number;
   fillSlotPositions: {x: number, y: number}[];
-  parentFunc: () => void;
+  parentFunc: (value: boolean) => void;
   onSlotChange: (slotIndex: number | null) => void;
 }
 
@@ -136,7 +136,7 @@ useDerivedValue is essentially the worklet equivalent of useMemo — but reactiv
 
   const tapGesture = Gesture.Tap().onStart(() => {
     runOnJS(playAudio)();
-    runOnJS(parentFunc)();
+    //runOnJS(parentFunc)();
 
     // console.log("\n ClickableWordNew tapGesture ENTRY - for word at INDEX ", index, ' offsets state:');
     //offsets.forEach((o, i) => {
@@ -161,6 +161,9 @@ useDerivedValue is essentially the worklet equivalent of useMemo — but reactiv
         offset.x.value = fillSlotPositions[slotIndex].x + (slotWidth - chipWidth) / 2 - 1;
         offset.y.value = fillSlotPositions[slotIndex].y;
         runOnJS(onSlotChange)(slotIndex);
+        const allFilled = Array.from({ length: fillSlotPositions.length }, (_, i) => i)
+          .every(i => offsets.some(o => o.order.value === i));
+        if (allFilled) runOnJS(parentFunc)(true);
       }
     } else {
       offset.order.value = -1;

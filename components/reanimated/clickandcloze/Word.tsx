@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 5,
     backgroundColor: colors.white,
-    borderColor: colors.blue,
+    borderColor: colors.grey,
     borderWidth: 2,
     //marginHorizontal: 0,
     marginRight: 3,

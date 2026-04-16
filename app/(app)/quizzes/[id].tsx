@@ -124,7 +124,7 @@ etched quiz attempt data: {"created": false,
           return <MultipleInputs ref={childQuestionRef} content={content} enableCheckButton={setCheckButton} />;
         case '2':
           return questionAttemptId !== null ? (
-             <ClickAndCloze content={question?.content || ''} />
+             <ClickAndCloze content={question?.content || ''} distractors={question?.button_cloze_options?.split('/')} enableCheckButton={setCheckButton}  />
           ) : null;
         case '6':
           return (

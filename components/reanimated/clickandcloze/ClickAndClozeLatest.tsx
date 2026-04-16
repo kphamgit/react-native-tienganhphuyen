@@ -48,19 +48,32 @@ function parseContent(content: string): { inputFields: InputItem[]; wordBankWord
 
 interface Props {
    content: string;
+   enableCheckButton: (value: boolean) => void; // Function to enable the Check button
+   distractors?: string[];
 }
 
 interface InnerProps {
   inputFields: InputItem[];
   wordBankWords: string[];
+  enableCheckButton: (value: boolean) => void; // Function to enable the Check button
 }
 
-function ClickAndCloze({content}: Props) {
+/*
+ export interface TakeQuestionProps  {
+    ref?: React.Ref<ChildQuestionRef>;
+    content: string | undefined; // Content of the question, if needed
+    enableCheckButton: (value: boolean) => void; // Function to enable the Check button
+  };
+*/
+
+
+function ClickAndCloze({content, distractors = [], enableCheckButton}: Props) {
   const { inputFields, wordBankWords } = parseContent(content);
-  return <ClickAndClozeInner key={content} inputFields={inputFields} wordBankWords={wordBankWords} />;
+  const allWords = [...wordBankWords, ...distractors];
+  return <ClickAndClozeInner key={content} inputFields={inputFields} wordBankWords={allWords} enableCheckButton={enableCheckButton} />;
 }
 
-function ClickAndClozeInner({inputFields: initialInputFields, wordBankWords}: InnerProps) {
+function ClickAndClozeInner({inputFields: initialInputFields, wordBankWords, enableCheckButton}: InnerProps) {
 
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
@@ -79,7 +92,7 @@ const wordGap = 8;
 const lineHeight =  wordHeight * 1.2; // the 1.2 is just a multiplier to add some 
 // extra space/ga between lines
 const lineGap = lineHeight - wordHeight; // the gap between lines is the line height minus the word height
-console.log("lineHeight: ", lineHeight, "wordHeight=", wordHeight, "lineGap: ", lineGap);
+// console.log("lineHeight: ", lineHeight, "wordHeight=", wordHeight, "lineGap: ", lineGap);
 const [containerWidth, setContainerWidth] = useState(0);
 // containerWidth is the width of the container that holds the words. It is set inside ComputeWordLayout's onLayout,
 //  which is called after ComputeWordLayout finishes rendering the words and measures their layout.
@@ -298,7 +311,7 @@ const wordElements = useMemo(() => {
               wordHeight={wordHeight}
               wordBankOffsetY={wordBankOffsetY}
               fillSlotPositions={fillSlotPositions}
-              parentFunc={enable_checkButton}
+              parentFunc={enableCheckButton}
               onSlotChange={onSlotChange}
             >
               {child}
@@ -337,6 +350,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 4,
     borderWidth: 2,
+    borderColor: 'gray',
     backgroundColor: 'rgba(0,0,255,0.3)',
     color: 'transparent',
   },
@@ -345,7 +359,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 4,
     borderWidth: 2,
-    backgroundColor: 'red',
+    borderColor: 'gray',
+    backgroundColor: 'yellow',
     color: 'transparent',
   },
  
