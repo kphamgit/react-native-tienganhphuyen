@@ -217,7 +217,8 @@ const wordElements = useMemo(() => {
     const idealNumLines = numLines < 3 ? numLines + 1 : numLines;
   const linesContainerHeight = idealNumLines * lineHeight || lineHeight;
   /** Since word bank is absolutely positioned, estimate the total height of container with offsets */
-  const wordBankHeight = numLines * (wordHeight + wordGap * 2) + wordBankOffsetY * 2;
+  const wordBankRows = 2; // word bank wraps to at most 2 rows
+  const wordBankHeight = wordBankRows * (wordHeight + wordGap) + wordBankOffsetY * 2;
 
   const PlaceholderComponent =  Placeholder;
   const LinesComponent = Lines;
@@ -227,7 +228,7 @@ const wordElements = useMemo(() => {
   }
 
   const onSlotChange = (slotIndex: number | null) => {
-    setInputFields(prev => {
+    setTimeout(() => setInputFields(prev => {
       const fills = prev.filter(i => i.type === 'fill');
       return prev.map(item => {
         if (item.type !== 'fill') return item;
@@ -251,7 +252,7 @@ const wordElements = useMemo(() => {
           return { ...item, readyForFill: fillIndex === firstFreeIndex };
         }
       });
-    });
+    }), 700);
   };
 
   // offsets state is passed into ClickableWordNew for animation, it is also used
@@ -317,6 +318,7 @@ const styles = StyleSheet.create({
   container: {
      flex: 0,
     backgroundColor: 'lightgray',
+    margin: 10,
   },
   inputRow: {
     flexDirection: 'row',
