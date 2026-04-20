@@ -1,50 +1,32 @@
 import api from '@/api/axios';
-import { ArrowUpCircle, Mic } from '@tamagui/lucide-icons-2';
 import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Button, Text, View } from 'react-native';
 
 interface VoiceRecorderProps {
   onResult?: (transcript: string) => void;
 }
 
-export default function VoiceRecorder({ onResult }: VoiceRecorderProps) {
+export default function VoiceRecorderSave({ onResult }: VoiceRecorderProps) {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (isRecording) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.25, duration: 600, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-        ])
-      ).start();
-    } else {
-      pulseAnim.stopAnimation();
-      pulseAnim.setValue(1);
-    }
-  }, [isRecording]);
-
   const startRecording = async () => {
-    console.log('Start recording...');
     setError(null);
     const status = await AudioModule.requestRecordingPermissionsAsync();
     if (!status.granted) {
       setError('Microphone permission denied.');
       return;
     }
-    setIsRecording(true);
     await AudioModule.setAudioModeAsync({
       allowsRecording: true,
       playsInSilentMode: true,
     });
     await audioRecorder.prepareToRecordAsync();
     audioRecorder.record();
+    setIsRecording(true);
   };
 
   const stopAndUpload = async () => {
@@ -83,15 +65,9 @@ export default function VoiceRecorder({ onResult }: VoiceRecorderProps) {
       {isUploading ? (
         <ActivityIndicator size="large" />
       ) : isRecording ? (
-        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-          <TouchableOpacity onPress={stopAndUpload} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }} style={{ padding: 16, borderRadius: 50, backgroundColor: 'red' }}>
-            <ArrowUpCircle size={28} color="white" pointerEvents="none" />
-          </TouchableOpacity>
-        </Animated.View>
+        <Button title="Stop & Send" color="red" onPress={stopAndUpload} />
       ) : (
-        <TouchableOpacity onPress={startRecording} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }} style={{ padding: 16, borderRadius: 50, backgroundColor: '#007AFF' }}>
-          <Mic size={28} color="white" pointerEvents="none" />
-        </TouchableOpacity>
+        <Button title="Record" onPress={startRecording} />
       )}
       {error && <Text style={{ color: 'red' }}>{error}</Text>}
     </View>

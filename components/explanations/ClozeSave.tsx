@@ -24,16 +24,12 @@ type Props = {
   processQuestionResults?: QuestionAttemptAssesmentResultsProps | null;
 };
 
-const ClozeExplanation = ({ content,  processQuestionResults }: Props) => {
+const ClozeExplanationSave = ({ content,  processQuestionResults }: Props) => {
  
   const [arrayOfInputFields, setArrayOfInputFields] = useState<InputField[][]>() // array of input fields 
 
-  useEffect(() => {
-    console.log("----- XXXXXXXXXXXXXXX------------- ClozeExplanation component mounted ");
-    }, [])
   
   useEffect(() => {
-    console.log("----- XXXXXXXXX------------- ClozeExplanation useEffect triggered with content=", content, " and processQuestionResults=", processQuestionResults);
     const tempArrayOfInputFields: InputField[][] = [];
           //const sentence = content
           const sentences_array = content?.split('/');
@@ -54,7 +50,7 @@ const ClozeExplanation = ({ content,  processQuestionResults }: Props) => {
                 const found = array_of_bracket_contents?.[matchIndex]; // Get the matched value using the index           
                 return {
                   id: uuid.v4(),
-                  type: "input",
+                  type: "fill",
                   error: found?.error_flag,
                   //value: part.split(",")[0].trim(),
                   value: found?.answer_key.replace('*','/'), // if answer_key is "who*that", display "who/that" in the input field
@@ -73,12 +69,12 @@ const ClozeExplanation = ({ content,  processQuestionResults }: Props) => {
   }, [content, processQuestionResults ])
   
   return (
-    <View style={{ flex: 1, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12 }}>
+    <View>
        { arrayOfInputFields?.map((sentence_array, index) => (
         <View key={index} style={{ marginBottom: 10 }}>
           <Text style={{ fontSize: 16, color: '#1C1C1E' }}>
             {sentence_array.map((field) => {
-              if (field.type === 'input') {
+              if (field.type === 'fill') {
                 return (
                   <Text key={field.id} style={{ color: field.error ? '#FF3B30' : '#34C759', fontWeight: '600' }}>
                     {field.value.includes('/') ? (
@@ -108,7 +104,7 @@ const ClozeExplanation = ({ content,  processQuestionResults }: Props) => {
   )
 
 };
-export default ClozeExplanation;
+export default ClozeExplanationSave;
 
 
 /*

@@ -186,7 +186,7 @@ export default function ComputeWordLayout({
                   setTimeout(() => {
                     //console.log("Time is up.  Calling onLayout with numLines: ", numLines.size, " and offsetStyles: ", offsetStyles.current);
                     onLayout({ numLines: numLines.size, wordStyles: offsetStyles.current });
-                  }, 1600);
+                  }, 160);
                 }
                 
               }}

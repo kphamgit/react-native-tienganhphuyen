@@ -14,24 +14,18 @@ export default function Dashboard() {
 
     const [levels, setLevels] = React.useState<LevelProps[]>([]);
 
-    useEffect(() => {
-        console.log(' Dashboard insets top : ', insets.top)
-        console.log(' Dashboard insets bottom : ', insets.bottom)
-    }, [insets]);
+   // useEffect(() => {
+     //   console.log(' Dashboard insets top : ', insets.top)
+       // console.log(' Dashboard insets bottom : ', insets.bottom)
+    //}, [insets]);
 
     const getLevels = () => {
         api
             .get("/api/levels/")
             .then((res) => res.data)
             .then((data) => {
-                console.log("***** levels: ", data as LevelProps[]);
+                //console.log("***** levels: ", data as LevelProps[]);
                 setLevels(data as LevelProps[]);
-                (data as LevelProps[]).forEach(level => {
-                    console.log(`Level: ${level.name}, ID: ${level.id}`);
-                    level.categories.forEach(category => {
-                        console.log(` Category: ${category.name}, ID: ${category.id}`);
-                    });
-                });
             })
             .catch((err) => alert(err));
     };
@@ -41,7 +35,6 @@ export default function Dashboard() {
     }, []);
 
     const handleClick = (id: string) => {
-        console.log("Level clicked! id =", id);
         router.replace(`/levels/${id}`);
     };
 
@@ -77,3 +70,23 @@ export default function Dashboard() {
         </YStack>
     );
 }
+
+/*
+ const getLevels = () => {
+        api
+            .get("/api/levels/")
+            .then((res) => res.data)
+            .then((data) => {
+                //console.log("***** levels: ", data as LevelProps[]);
+                setLevels(data as LevelProps[]);
+                (data as LevelProps[]).forEach(level => {
+                    console.log(`Level: ${level.name}, ID: ${level.id}`);
+                    level.categories.forEach(category => {
+                        console.log(` Category: ${category.name}, ID: ${category.id}`);
+                    });
+                });
+            })
+            .catch((err) => alert(err));
+    };
+
+*/

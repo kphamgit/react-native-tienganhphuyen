@@ -2,20 +2,28 @@
 
 //import { useNavigationContext } from '@/components/context/NavigationContext';
 import api from '@/api/axios';
+import CheckboxGroup from '@/components/CheckBoxGroup';
+import ButtonSelectExplanation from '@/components/explanations/ButtonSelect';
+import CheckboxExplanation from '@/components/explanations/Checkbox';
+import ClozeExplanation from '@/components/explanations/Cloze';
+import RadioExplanation from '@/components/explanations/RadioExplanation';
+import SentenceScrambleExplanation from '@/components/explanations/SentenceScramble';
+import WordScrambleExplanation from '@/components/explanations/WordScramble';
+import WordsSelectExplanation from '@/components/explanations/WordsSelect';
 import MultipleInputs from '@/components/MultipleInputs';
-import ClozeExplanation from '@/components/question_attempt_results/ClozeExplanation';
+import MyRadioGroup from '@/components/MyRadioGroup';
 import ClickAndCloze from '@/components/reanimated/clickandcloze/ClickAndCloze';
 import DuoDragDrop from '@/components/reanimated/duolingo/DuoDragDrop';
 import { ChildQuestionRef, ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps, QuizAttemptProps } from '@/components/types';
-import VoiceRecorder from '@/components/VoiceRecorder';
+import WordsSelect from '@/components/WordsSelect';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Button, Keyboard, KeyboardEvent, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Button, Keyboard, KeyboardEvent, Modal, Pressable, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scheduleOnRN } from 'react-native-worklets';
 
+import { useAuth } from '@/components/context/auth';
 
 
 export default function QuizScreen() {
@@ -40,96 +48,79 @@ export default function QuizScreen() {
   const [questionAttemptAssessmentResults, setQuestionAttemptAssessmentResults] = 
   useState<QuestionAttemptAssesmentResultsProps | null>(null);
 
-  const opacityImage = useSharedValue<number>(1);
+  const { width: screenWidth } = useWindowDimensions();
+  const translateX = useSharedValue<number>(0);
   const opacityResults = useSharedValue<number>(0);
 
   const [keyboardHeight, setKeyboardHeight] = useState(0); // State to store keyboard height
 
-  //const nextQuestionId = useRef<number | null>(null);
-  const [nextQuestionId, setNextQuestionId] = useState<number | null>(null); // State to store the next question id returned from the server
-
   const [quizAttempt, setQuizAttempt] = useState<QuizAttemptProps>(null as any);
 
   const [endOfQuiz, setEndOfQuiz] = useState<boolean>(false);
+  const [showEndOfQuizModal, setShowEndOfQuizModal] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+
+  const [remainingQuestions, setRemainingQuestions] = useState<QuestionProps[]>([]); // State to hold all questions in the quiz attempt, which is used to determine when we are at the last question in the quiz
+  const [hasMoreQuestions, setHasMoreQuestions] = useState<boolean>(true); // State to track if there are more questions to fetch from the server. This is used in conjunction with the isFetching ref to prevent duplicate fetches when we are at the end of the currently loaded questions and waiting for the next batch of questions to load from the server
+  const isFetching = useRef(false);
+
+  //use AuthContext to get user info
+  const user_name = useAuth()?.userName || 'default_user';
+  console.log("QuizScreen rendered with user_name:", user_name);
 
 
   useEffect(() => {
-     api.post(`/api/quiz_attempts/get_or_create/${id}/`, { user_name: "test_user" })  // use a fixed user id for now
+     api.post(`/api/quiz_attempts/get_or_create_react_native/${id}/`, { user_name: user_name })  // use a fixed user id for now
       .then((response) => {
-         // console.log("Fetched quiz attempt data:", response.data);
-         setQuestion(response.data.question);
-         //setAttemptKey(k => k + 1);
+         //console.log("Fetched quiz attempt data:", response.data);
+         const all_questions_loaded = response.data.questions;
+         console.log(" All questions loaded from server for this quiz attempt:");
+         all_questions_loaded.forEach((q: QuestionProps) => console.log("Question id:", q.id, " question number:", q.question_number, " content:", q.content));
+         const first_question = all_questions_loaded.length > 0 ? all_questions_loaded[0] : null;
+         setRemainingQuestions(all_questions_loaded.slice(1));
+         setQuestion(first_question);
          setQuestionAttemptId(response.data.question_attempt_id);
          setQuizAttempt(response.data.quiz_attempt);
+         setHasMoreQuestions(response.data.has_more ?? false);
          setLoading(false);
-         /*
-etched quiz attempt data: {"created": false, 
-"question": {"answer_key": "choice1/choice2", "audio_str": "", "button_cloze_options": null, "content": "choice 1 text/choice 2 text/choice 3 text/choice 4 text", "explanation": "", "format": 5, "hint": "", "id": 6, "instructions": null, "prompt": "", "question_number": 1, 
-"quiz_id": 1, "score": 0, "timeout": 30000, "video_segment_id": null},
-"question_attempt_id": 114, 
-"quiz_attempt": {"completion_status": "uncompleted", "created_at": "2026-03-23T15:49:49.941287Z", "errorneous_questions": "", "id": 48, "quiz_id": 1, "review_state": false, "score": 0, "updated_at": "2026-03-23T15:49:49.941664Z", "user_name": "test_user"}}
-         */
-
-        //setQuizAttemptData(response.data);
+         
       })
       .catch((error) => {
         console.error("Error fetching quiz attempt data:", error);
         setLoading(false);
       });
-   // const url = `${baseURL}/api/quiz_attempts/get_or_create/${quiz_id}/`;
-    //console.log("Fetching quiz attempt data from url =", url);
-    /*
-    api.post(url, { user_name: name })  // use a fixed user id for now
-      .then((response) => {
-        //console.log("Fetched quiz attempt data:", response.data);
-        setQuizAttemptData(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching quiz attempt data - inner:", error);
-      });
-    */
   },[id])
 
-
-  /*
-  useEffect(() => {
-    //console.log('QuizScreen useEffect triggered. Dynamic route id (Level):', id);
-    api.get(`/english/quizzes/${id}/`) // Fetch the specific category using the dynamic id, which should include units as part of the response
-      .then((res) => res.data)
-      .then((data) => {
-        //setSubCategories(data.sub_categories as SubCategoryProps[]);
-        console.log("Quiz data retrieved: ", data);
-        setQuizName(data.name); // Set the quiz name for display in the header
-        setUnitId(data.unit_id); // Set the unit id in state for navigating back to the unit screen
-        setQuestions(data.questions); // Set the questions in state
-       
-        data.questions.map((question: CategoryProps) => {
-          console.log(`Question ID: ${question.id}`);
-        });
-      })
-      .catch((err) => alert(err));
-  }, [id]);
-    */
-
   const setCheckButton = (value: boolean) => {
-    console.log("setCheckButton called with enabled:", value);
+    //console.log("setCheckButton called with enabled:", value);
     setCheckButtonDisabled(!value); // Enable the Check button
   };
 // return <ClickAndCloze ref={childQuestionRef} content={content} choices={button_cloze_options || ''} enableCheckButton={setCheckButton} />;
   const displayQuestion = (format: string, content: string, button_cloze_options: string | undefined) => {
-      console.log("displayQuestion called with format: ", format, " content: ", content, " button_cloze_options: ", button_cloze_options);
+      //console.log("displayQuestion called with format: ", format, " content: ", content, " button_cloze_options: ", button_cloze_options);
        switch (format) {
         case '1':
-          return <MultipleInputs ref={childQuestionRef} content={content} enableCheckButton={setCheckButton} />;
+          return <MultipleInputs key={questionAttemptId} ref={childQuestionRef} content={content} enableCheckButton={setCheckButton} />;
         case '2':
           return questionAttemptId !== null ? (
-             <ClickAndCloze ref={childQuestionRef} content={question?.content || ''} distractors={question?.button_cloze_options?.split('/')} extraData={questionAttemptId} enableCheckButton={setCheckButton} />
+             <ClickAndCloze  ref={childQuestionRef} content={question?.content || ''} distractors={question?.button_cloze_options?.split('/')} extraData={questionAttemptId} enableCheckButton={setCheckButton} />
           ) : null;
+        case '4':
+            return (
+              <MyRadioGroup  key={questionAttemptId} ref={childQuestionRef} content={question?.content || ''} enableCheckButton={setCheckButton} />
+             )
+        case '5':
+            return (
+              <CheckboxGroup key={questionAttemptId} ref={childQuestionRef} content={question?.content || ''} enableCheckButton={setCheckButton} />
+             )
         case '6':
           return (
             <DuoDragDrop ref={childQuestionRef} words={content.split('/')} extraData={questionAttemptId} enableCheckButton={setCheckButton} />
            )
+         case '8':
+            return (
+          <WordsSelect key={questionAttemptId} ref={childQuestionRef} content={question?.content || ''} enableCheckButton={setCheckButton} />
+             )
         default:
           //console.warn("Unknown question format:", format);
           return null;
@@ -141,26 +132,38 @@ etched quiz attempt data: {"created": false,
   the useEffect in DuoDragDrop that listens for changes in extraData can trigger a re-render when user 
   immediately repeats a question. Without this extraData (questionAttemptId), the component doesn't get rerendered
   because the words content doesn't change. 
-   */
+   */         
 
-  /*
-        case '2':
-          return questionAttemptId !== null ? (
-            <ClickAndClozeNew ref={childQuestionRef} words={["one","two", ]} extraData={questionAttemptId} enableCheckButton={setCheckButton} />
-          ) : null;
-  */
+          useEffect(() => {
+            console.log("useEffect ******* to check remaining questions. Remaining questions length:", remainingQuestions.length, " isFetching:", isFetching.current);
+            if (remainingQuestions.length === 1 && !isFetching.current) {
+              isFetching.current = true;
+              /*
+The isFetching ref prevents duplicate fetches if the component re-renders while the request is in flight.
+// path("quizzes/<int:pk>/questions/<int:starting_question_number>"
+              */
+              console.log("\nRemaining questions size is 1, fetching more questions from server. Remaining questions length:", remainingQuestions.length);
+              const last_question_remaining = remainingQuestions[remainingQuestions.length - 1];
+              console.log("Last question remaining:", last_question_remaining);
+            
+              api.post(`/english/quizzes/${id}/questions/${last_question_remaining?.question_number+1}`,
+                { quiz_attempt_id: quizAttempt?.id },
+              )  // send the current question number
+                .then((response) => {
+                  console.log("More fetched questions from server:");
+                  response.data.questions.forEach((q: QuestionProps) => console.log("Question id:", q.id, " question number:", q.question_number, " content:", q.content));
+                  console.log("---- has_more flag from server:", response.data.has_more);
+                  // add fetched questions to remainingQuestions
+                  setRemainingQuestions(prev => [...prev, ...response.data.questions]);
+                  setHasMoreQuestions(response.data.has_more);
+                  isFetching.current = false;
+                })
+                .catch(() => { isFetching.current = false; });
+                
 
-  /*
- case '2':
-          return questionAttemptId !== null ? (
-            <ClickAndCloze ref={childQuestionRef} content={content} choices={button_cloze_options || ''} questionAttemptId={questionAttemptId} enableCheckButton={setCheckButton} />
-          ) : null;
-
-              return questionAttemptId !== null ? (
-            <ClickAndClozeNew ref={childQuestionRef} words={["one", "two", "three", "four"]} extraData={questionAttemptId} enableCheckButton={setCheckButton} />
-          ) : null;
-  */
-
+            }
+          }, [remainingQuestions.length]);
+          
 
    useEffect(() => {
     // Listen for keyboard events
@@ -199,25 +202,53 @@ etched quiz attempt data: {"created": false,
     const url = `/api/question_attempts/${questionAttemptId}/process/`;
     const uanswer = childQuestionRef.current?.getAnswer();  
     const aKey = question?.answer_key;
-    
-    api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format , user_answer: uanswer, answer_key: aKey})
-      .then((res) => {     
+   
+    api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format, user_answer: uanswer, answer_key: aKey })
+      .then((res) => {
         // server returns the next question id (if any), together with assessment results 
-        const { assessment_results, next_question_id } = res.data;
-        console.log("Assessment results from server:", assessment_results);
-        console.log("Next question id from server:", next_question_id);
+        const { assessment_results } = res.data;
+        //console.log("Assessment results from server:", assessment_results);
+        //console.log("Next question id from server:", next_question_id);
         setQuestionAttemptAssessmentResults(assessment_results);
-        opacityResults.value = withTiming(1, { duration: 800 });
+        opacityResults.value = withTiming(1, { duration: 100 });
+        // check if there are questions in remainingQuestions. 
+        const next_question_available = remainingQuestions.length > 0;
+        if (next_question_available) {
+          setShowContinueButton(true);
+        }
+        else {
+          console.log("No more questions available in remainingQuestions. This was the last question in the quiz.");
+          setShowEndOfQuizModal(true);
+          /*
+          setShowContinueButton(false);
+          // call api to set quiz attempt as completed since there are no more questions in the quiz, which will update the quiz attempt score and trigger any necessary post-quiz completion processes on the server such as awarding badges or updating user progress. We also set endOfQuiz to true to show the end of quiz screen with the final score and a button to navigate back to the unit screen.
+          api.post(`/api/quiz_attempts/${quizAttempt.id}/mark_completed/`)
+            .then((response) => {
+              console.log("Quiz attempt marked as completed. Server response:", response.data);
+              setQuizAttempt(prev => prev ? { ...prev, score: response.data.score } : prev);
+            })
+            .catch((err) => {
+              console.error("Error marking quiz attempt as completed:", err);
+            });
+
+              // update quiz attempt score in state to show on end of quiz screen
+            
+          setEndOfQuiz(true);
+          */
+
+        }
+        // If not, we are at the end of the quiz and there is no next question to load, so we should hide the Continue button and show some kind of end of quiz message instead
+        /*
         if (next_question_id === undefined) {
           console.log("No next question id returned from server. This was the last question in the quiz.");
           setShowContinueButton(false);
           setEndOfQuiz(true);
         }
         else {
-        //nextQuestionId.current = next_question_id ?? null; // server also returns next question id if there is a next question, otherwise returns null. We store this in a ref since it doesn't need to trigger a re-render
-        setNextQuestionId(next_question_id || null); // server also returns next question id if there is a next question, otherwise returns null. We store this in state so that when the user clicks "Continue", we have the next question id available to send to the server when we call createNextQuestionAttempt
-        setShowContinueButton(true);
+          setNextQuestionId(next_question_id || null); // server also returns next question id if there is a next question, otherwise returns null. We store this in state so that when the user clicks "Continue", we have the next question id available to send to the server when we call createNextQuestionAttempt
+          setShowContinueButton(true);
         }
+        */
 
         // update quizAttemptData.quiz_attempt
       }
@@ -225,37 +256,42 @@ etched quiz attempt data: {"created": false,
       .catch((err) => {
         console.error("Error processing question attempt:", err);
       });
-   
-    
 }
 
-const createNextQuestionAttempt = async (quizAttemptId: number, questionId: number | null) => {
-  console.log("createNextQuestionAttempt called with quizAttemptId:", quizAttemptId, " questionId:", questionId);
-  const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt/`;
+const createNextQuestionAttempt = async (quizAttemptId: number) => {
+  //console.log("createNextQuestionAttempt called with quizAttemptId:", quizAttemptId, " questionId:", questionId);
+  const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt_react_native/`;
    console.log("createNextQuestionAttempt POSTing to url =", url);
 
+   //const next_question = remainingQuestions.find(q => q.id === questionId) || null;
+   //if (!next_question) {
+   // console.warn("Next question with id", questionId, " not found in remainingQuestions. Remaining questions:", remainingQuestions);
+   // return;
+  //}
+
+  const next_question = remainingQuestions[0]; // first question in the 
+  console.log("***** Next question to display (first question in remainingQuestions):", next_question.id);
+
+
+   // remove the next question from remainingQuestions  
+   console.log("^^^^^^^^^^^^^^ Removing question with id", next_question.id, " from remainingQuestions");
+   setRemainingQuestions(prev => prev.filter(q => q.id !== next_question.id));
+
+   setQuestion(next_question || undefined);
+   translateX.value = screenWidth;
+   translateX.value = withTiming(0, { duration: 300 });
+    opacityResults.value = withTiming(0, { duration: 400 });
+    setShowContinueButton(false);
+
   try {
-    const response = await api.post<{ question_attempt_id: number; question: QuestionProps }>(url, {
-      question_id: questionId,
+    const response = await api.post<{ question_attempt_id: number }>(url, {
+      question_id: next_question.id, // we send the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt, which should trigger an error response from the server that we can catch and log.
     });
     //console.log("createNextQuestionAttempt , Received response from create_next_question_attempt:", response.data);
 
-    const { question_attempt_id, question } = response.data;
+    const { question_attempt_id } = response.data;
     console.log("createNextQuestionAttempt, question_attempt_id from server:", question_attempt_id);
-    console.log("createNextQuestionAttempt, question data from server:", question);
-
-    setQuestion(question);
-    //setAttemptKey(k => k + 1);
     setQuestionAttemptId(question_attempt_id);
-    // change opacity of question to original value (in case it was faded out when user clicked "Continue")
-    opacityImage.value = withTiming(1, { duration: 400 });
-     opacityResults.value = withTiming(0, { duration: 400 });
-     setShowContinueButton(false);
-    //setTimerDuration(question.timeout);
-    //counterRef.current?.start(); // Start the countdown timer for the next question
-    //nextQuestionId.current = null; // Reset nextQuestionId
-    setNextQuestionId(null); // Reset nextQuestionId in state to trigger a re-render and hide the "Continue" button until the user answers the next question and we get a new nextQuestionId from the server
-    
   } catch (error) {
     console.error("Error creating next question attempt:", error);
   }
@@ -279,27 +315,17 @@ const createNextQuestionAttempt = async (quizAttemptId: number, questionId: numb
 
 
   const handleContinue = async () => {
-    //translateX.value += 50;
-    //Continue button pressed. Starting opacity animation to fade out results and question...");
-    opacityResults.value = withTiming(0, { duration: 400 });
-    //opacityImage.value = withTiming(0, { duration: 100 });
-    opacityImage.value = withTiming(0, { duration: 400 }, async (finished) => {
-      if (finished) {
-        console.log("XXXXXX Opacity animation to 0 has finished.");
-        console.log("XXXXXX Now setting questionFinished to true.");
-        // load the next 
-        // log quizAttemp and nextQuestionId 
-        console.log("Current quizAttempt data in state:", quizAttempt);
-        //console.log("Current nextQuestionId in ref:", nextQuestionId.current);
-        
-        
-    // We are on the UI Thread here.
-        // We MUST use scheduleOnRN to "call back" to the JS thread.
-        scheduleOnRN(createNextQuestionAttempt, quizAttempt.id, nextQuestionId) // we pass the quiz attempt id and the next question id to createNextQuestionAttempt, which will make the API call to create the next question attempt and update state with the new question data when it receives the response from the server. We have to use scheduleOnRN to call this function from the UI thread since we are currently in a worklet (the withTiming callback), and we need to call back to the JS thread to update state and trigger a re-render with the new question data.;
-        //runOnJS(createNextQuestionAttempt(quizAttempt.id, nextQuestionId.current) )
-        //runOnJS(proceedToNextQuestion)(true);
-      }
-    });
+    // print out all questions in remainingQuestions for debugging
+    console.log("handleContinue called. Remaining questions in state:") ;
+    remainingQuestions.forEach(q => console.log("Question id:", q.id, "question number:", question?.question_number, " content:", q.content));
+    setQuestionAttemptAssessmentResults(null);
+    opacityResults.value = withTiming(0, { duration: 200 });
+    translateX.value = withTiming(-screenWidth, { duration: 300 });
+    // Start API call immediately in parallel with the slide-out animation
+    // retrieve next question from remainingQuestions 
+    // remainingQuestions array is the next question to display,
+    // createNextQuestionAttempt(quizAttempt.id, nextQuestionId);
+    createNextQuestionAttempt(quizAttempt.id); // we pass the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt, which should trigger an error response from the server that we can catch and log.
     
   };
 
@@ -308,8 +334,8 @@ const createNextQuestionAttempt = async (quizAttemptId: number, questionId: numb
     opacity: opacityResults.value,
   }));
 
-  const animatedStylesImage = useAnimatedStyle(() => ({
-    opacity: opacityImage.value,
+  const animatedStylesSlide = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
   }));
 
   if (loading) {
@@ -345,6 +371,53 @@ const createNextQuestionAttempt = async (quizAttemptId: number, questionId: numb
     //setCheckButton(true); // Enable the Check button since we now have an answer from the voice recording
   }
 
+  //  <ClozeExplanation content={question?.content || ''} processQuestionResults={questionAttemptAssessmentResults} />
+  const displayFeedback = (question_format: string, assessment_results: QuestionAttemptAssesmentResultsProps | null) => {
+    //console.log("displayErrorFeedback called with question_format:", question_format, " assessment_results:", assessment_results);  
+    if ( !assessment_results ) {
+      console.warn("displayErrorFeedback called but assessment_results is null");
+      return null;
+    }
+    if (assessment_results.error_flag === false) {
+      return (
+        <Text style={{ fontSize: 18, color: 'green' }}>
+          Correct!
+        </Text>
+      );
+    }
+    switch (question_format) {
+      case '1':
+      case '2':
+          //console.log("Rendering ClozeExplanation for question format 1 or 2 with content:", question?.content, " and assessment_results:", assessment_results);
+          return <ClozeExplanation content={question?.content || ''} processQuestionResults={assessment_results || undefined} />;
+      case '3':
+          return <ButtonSelectExplanation content={question?.content || ''} answer_key={question?.answer_key || ''} processQuestionResults={assessment_results || undefined} />;
+      case '4':
+          return <RadioExplanation content={question?.content || ''} answer_key={question?.answer_key || ''} processQuestionResults={assessment_results || undefined} />;
+      case '5':
+          return <CheckboxExplanation content={question?.content || ''} answer_key={question?.answer_key || ''} processQuestionResults={assessment_results || undefined} />;
+      case '6':
+          return <WordScrambleExplanation content={question?.content || ''}  processQuestionResults={assessment_results || undefined} />;
+      case '8':
+          return <WordsSelectExplanation content={question?.content || ''} answer_key={question?.answer_key || ''} processQuestionResults={assessment_results || undefined} />;
+      case '12':
+          return <SentenceScrambleExplanation content={question?.content || ''}  processQuestionResults={assessment_results || undefined} />;
+      default:
+        return null;
+      }
+    };
+
+  const loadIncorrectQuestions = () => {
+    api.get(`/api/quiz_attempts/${quizAttempt?.id}/incorrect_questions/`)
+      .then((response) => {
+        console.log("Incorrect questions for this quiz attempt:", response.data);
+        // Here you can navigate to a new screen to display the incorrectly answered questions, or display them in a modal, etc.
+      })
+      .catch((error) => {
+        console.error("Error fetching incorrectly answered questions:", error);
+      });
+  }
+
   return (
     <>
      <Stack.Screen 
@@ -378,45 +451,99 @@ const createNextQuestionAttempt = async (quizAttemptId: number, questionId: numb
           paddingBottom: insets.bottom
         }
       ]}>
-        <Animated.View style={[{ justifyContent: 'space-around', height: '75%', backgroundColor: 'blue' }, animatedStylesImage]}>
-         
-           <View style={{ padding: 10 , marginBottom: 0, backgroundColor: 'lightblue', borderRadius: 10}}>
-            <VoiceRecorder onResult={onVoiceRecordingResults} />
-          <Text>{ question?.prompt}</Text>
-          <Text>{ question?.explanation}</Text>
-          </View>
-           <View style={styles.questionContainer}>
-                      {memoizedDisplayQuestion}
-          </View>
-        </Animated.View>
-    
+        <Animated.View style={[{ justifyContent: 'space-around', height: '75%', backgroundColor: 'white' }, animatedStylesSlide]}>
+
+            <View style={{ padding: 10 , marginBottom: 0, backgroundColor: 'lightblue', borderRadius: 10}}>
+
+           </View>
+            <View style={styles.questionContainer}>
+                       {memoizedDisplayQuestion}
+           </View>
+         </Animated.View>
+
         <Animated.View style={[styles.resultsContainer, animatedStylesResults]}>
-          <View style={{ flex: 1, flexDirection: "row", padding: 10, marginBottom: 0, backgroundColor: 'lightblue', borderRadius: 10 }}>
-            {questionAttemptAssessmentResults?.error_flag
-              &&
-              <ClozeExplanation content={question?.content || ''} processQuestionResults={questionAttemptAssessmentResults} />
-              
-        }
+          <View style={{ flex: 1,flexDirection: "row", padding: 10, marginBottom: 0, backgroundColor: 'orange', borderRadius: 10, width: '100%' }}>
+           
+              { displayFeedback(question?.format.toString() || '', questionAttemptAssessmentResults) }
+       
           </View>
-        
-     
-        
         </Animated.View>
 
+        <Modal visible={showEndOfQuizModal} transparent animationType="fade">
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ backgroundColor: '#FFF', borderRadius: 16, padding: 24, width: '80%', gap: 16 }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', textAlign: 'center' }}>Quiz Complete!</Text>
+              <Text style={{ fontSize: 16, textAlign: 'center', color: '#555' }}>
+                Would you like to revisit the questions you got wrong?
+              </Text>
+              <Pressable
+                onPress={() => {
+                  setShowEndOfQuizModal(false);
+                  // TODO: load incorrect questions into remainingQuestions
+                }}
+                style={{ backgroundColor: '#007AFF', borderRadius: 10, padding: 14, alignItems: 'center' }}
+              >
+                <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 16 }}>Revisit Incorrect</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setShowEndOfQuizModal(false);
+                  setEndOfQuiz(true);
+                }}
+                style={{ backgroundColor: '#E5E5EA', borderRadius: 10, padding: 14, alignItems: 'center' }}
+              >
+                <Text style={{ fontWeight: '600', fontSize: 16 }}>Finish Quiz</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+
         <View style= {[styles.buttonContainer, { marginBottom: keyboardHeight > 0 ? keyboardHeight : 25 }]}>
-         {renderButtonRow(question?.format.toString() || '')} 
+         {renderButtonRow(question?.format.toString() || '')}
         </View>
       </View>
-        
+
     </>
   );
 }
+
+/*
+   <Animated.View style={[styles.resultsContainer, animatedStylesResults]}>
+          <View style={{ flex: 1,flexDirection: "row", padding: 10, marginBottom: 0, backgroundColor: 'lightblue', borderRadius: 10 }}>
+            {questionAttemptAssessmentResults?.error_flag
+              ?
+              <ClozeExplanation content={question?.content || ''} processQuestionResults={questionAttemptAssessmentResults} />
+              :
+              <Text style={{ fontSize: 18, color: 'black' }}>
+                "Correct!" 
+                </Text>
+            }
+          </View>
+        </Animated.View>
+*/
+
+/*
+       <Animated.View style={[styles.resultsContainer, animatedStylesResults]}>
+          <View style={{ flex: 1,flexDirection: "row", padding: 10, marginBottom: 0, backgroundColor: 'red', borderRadius: 10 }}>
+            {questionAttemptAssessmentResults?.error_flag
+              ?
+               displayErrorFeedback(question?.format.toString() || '', questionAttemptAssessmentResults)
+              :
+              <Text style={{ fontSize: 18, color: 'black' }}>
+                "Correct!" 
+                </Text>
+            }
+          </View>
+        </Animated.View>
+*/
+
 
 const styles = StyleSheet.create({
  
   container: {
     flex: 1,
-    backgroundColor: 'green',
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
   },
   questionContainer: {
     flex: 1,
@@ -429,7 +556,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center', 
     alignItems: 'center', 
-    backgroundColor: 'green', 
+    backgroundColor: 'white', 
     height: '30%' ,
     zIndex: 5,
     //opacity: 0,

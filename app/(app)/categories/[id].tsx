@@ -2,7 +2,7 @@
 
 //import { useNavigationContext } from '@/components/context/NavigationContext';
 import api from '@/api/axios';
-import { CategoryProps, UnitProps } from '@/components/types';
+import { UnitProps } from '@/components/types';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect } from 'react';
@@ -26,21 +26,18 @@ export default function CategoryScreen() {
       .then((res) => res.data)
       .then((data) => {
         //setSubCategories(data.sub_categories as SubCategoryProps[]);
-        console.log("Category data retrieved: ", data);
+        //console.log("Category data retrieved: ", data);
         setCategoryName(data.name); // Set the level name in state
         setLevelId(data.level_id); // Set the level id in state for navigating back to the level screen
         setUnits(data.units); // Set the categories in state
         // Log the categories to verify they are being set correctly
-        data.units.map((unit: CategoryProps) => {
-          console.log(`Unit: ${unit.name}, ID: ${unit.id}`);
-        });
+     
       })
       .catch((err) => alert(err));
   }, [id]);
      
     
   const handleClick = (unitId: string) => {
-    console.log(`Unitttt clicked: ${unitId}`);
     router.replace(`/units/${unitId}`);
     //console.log(`Unit clicked: ${unitId}, Name: ${unitName}`);
     //const queryParams = new URLSearchParams({

@@ -102,3 +102,12 @@ export interface QuestionProps {
         quiz_attempt: QuizAttemptProps,
       }
   
+
+      export interface QuestionAttemptAssesmentResultsProps {
+        answer?: string 
+        score: number,
+        error_flag: boolean,
+        cloze_question_results?: ClozeAnswerResultsProps[] | undefined,
+      }
+      
+  

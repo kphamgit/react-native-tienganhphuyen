@@ -89,15 +89,15 @@ const getAnswer = () => {
        // set Focus to the first input field so that the the virtual keyboard pops up
        // when the component is rendered
       firstInputRef.current.focus();
-    } else {
-      console.log("firstInputRef.current is null or inputFields is not populated");
     }
   }, [inputFields, ready]); // Add inputFields as a dependency
 
   const handleInputChange = (id: string, value: any) => {
-   //console.log("handleInputChange called with id=", id, "value=", value);
-    enableCheckButton(true); // Call the function to enable the Check button
-    setInputValues((prev) => ({ ...prev, [id]: value }));
+    const updated = { ...inputValues, [id]: value };
+    setInputValues(updated);
+    const inputCount = inputFields?.filter(i => i.type === 'input').length ?? 0;
+    const allFilled = inputCount > 0 && Object.values(updated).filter(v => v.trim() !== '').length === inputCount;
+    enableCheckButton(allFilled);
   };
 
   

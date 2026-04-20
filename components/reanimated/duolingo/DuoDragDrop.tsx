@@ -6,9 +6,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { runOnJS, useAnimatedReaction, useSharedValue } from "react-native-reanimated";
 import ClickableWord, { ClickableWordProps } from "./ClickableWord";
 import Lines from "./Lines";
-import SortableWord from "./SortableWord";
 import Placeholder from "./Placeholder";
 import { calculateLayout, type Offset } from "./SentenceLayout";
+import SortableWord from "./SortableWord";
 import type { DuoAnimatedStyleWorklet, OnDropFunction } from "./types";
 import Word from "./Word";
 import WordContext from "./WordContext";
@@ -81,7 +81,7 @@ const DuoDragDrop= React.forwardRef<ChildQuestionRef, DuoDragDropProps>((props, 
   const [containerWidth, setContainerWidth] = useState(0);
 
   const wordElements = useMemo(() => {
-    console.log("********** Rendering word elements with wwww words: ", words);
+    //console.log("********** Rendering word elements with wwww words: ", words);
     const shuffledWords = words.sort(() => Math.random() - 0.5);
     return shuffledWords.map((word, index) => (
       <WordContext.Provider key={`${word}-${index}`} value={{ wordHeight, wordGap, text: word }}>

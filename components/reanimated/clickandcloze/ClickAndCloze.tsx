@@ -111,7 +111,6 @@ const slotHeightMeasured = React.useRef(false);
 const wordGap = 10;
 
 const lineHeight = wordHeight * 1.2;
-const lineGap = lineHeight - wordHeight;
 const [containerWidth, setContainerWidth] = useState(0);
 
 const [layout, setLayout] = useState<LayoutType | null>(null);
@@ -123,7 +122,6 @@ React.useEffect(() => {
 
 const fillCount = inputFields?.filter(i => i.type === 'fill').length ?? 0;
 const [fillSlotPositions, setFillSlotPositions] = useState<{x: number, y: number}[]>([]);
-const [slotWidth, setSlotWidth] = useState(wordHeight * 3);
 const measuredFills = React.useRef<({x: number, y: number} | null)[]>(Array(fillCount).fill(null));
 const inputRowLayout = React.useRef<{x: number, y: number} | null>(null);
 
@@ -261,7 +259,7 @@ const wordElements = useMemo(() => {
       }
     });
     setDroppedWords(newDroppedWords);
-    console.log('droppedWords:', newDroppedWords);
+    //console.log('droppedWords:', newDroppedWords);
 
     setTimeout(() => setInputFields(prev => {
       const fills = prev.filter(i => i.type === 'fill');

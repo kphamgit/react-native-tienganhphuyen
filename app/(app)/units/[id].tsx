@@ -2,7 +2,7 @@
 
 //import { useNavigationContext } from '@/components/context/NavigationContext';
 import api from '@/api/axios';
-import { CategoryProps, QuizProps } from '@/components/types';
+import { QuizProps } from '@/components/types';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect } from 'react';
@@ -26,14 +26,11 @@ export default function UnitScreen() {
       .then((res) => res.data)
       .then((data) => {
         //setSubCategories(data.sub_categories as SubCategoryProps[]);
-        console.log("Unit data retrieved: ", data);
+        // console.log("Unit data retrieved: ", data);
         setUnitName(data.name); // Set the level name in state
         setCategoryId(data.category_id); // Set the level id in state for navigating back to the level screen
         setQuizzes(data.quizzes); // Set the categories in state
         // Log the categories to verify they are being set correctly
-        data.quizzes.map((quiz: CategoryProps) => {
-          console.log(`Quiz: ${quiz.name}, ID: ${quiz.id}`);
-        });
       })
       .catch((err) => alert(err));
   }, [id]);

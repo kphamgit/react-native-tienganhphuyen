@@ -4,13 +4,15 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const AuthContext = createContext<{
   user: any;
-  signIn: (tokens: { access: string; refresh: string }) => void;
+  userName: string | null;
+  signIn: (tokens: { access: string; refresh: string }, userName: string) => void;
   signOut: () => void;
   isLoading: boolean;
 } | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -26,11 +28,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadToken();
   }, []);
 
-  const signIn = async (tokens: { access: string; refresh: string }) => {
-    //console.log("in signIn, received tokens: ", tokens);
+  const signIn = async (tokens: { access: string; refresh: string }, userName: string) => {
     await SecureStore.setItemAsync('access_token', tokens.access);
     await SecureStore.setItemAsync('refresh_token', tokens.refresh);
     setUser({ token: tokens.access });
+    setUserName(userName);
   };
 
   const signOut = async () => {
@@ -40,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, signIn, signOut, isLoading }}>
+    <AuthContext.Provider value={{ user, userName, signIn, signOut, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

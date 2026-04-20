@@ -51,7 +51,7 @@ data: {"access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXB.., refres
       //SecureStore.setItemAsync('access_token', data.access);
       //SecureStore.setItemAsync('refresh_token', data.refresh);//
       //const signIn = async (tokens: { access: string; refresh: string }) => {
-      signIn({ access: data.access, refresh: data.refresh });
+      signIn({ access: data.access, refresh: data.refresh }, userName);
       console.log("login successful, navigating to dashboard...");
     },
     onError: (err) => {

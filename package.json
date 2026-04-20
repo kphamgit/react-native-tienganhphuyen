@@ -14,9 +14,9 @@
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
     "@tamagui/animations-react-native": "^2.0.0-rc.31",
+    "@tamagui/checkbox": "2.0.0-rc.31",
     "@tamagui/config": "^2.0.0-rc.31",
     "@tamagui/core": "^2.0.0-rc.31",
-    "@tamagui/lucide-icons": "^1.144.4",
     "@tamagui/lucide-icons-2": "^2.0.0-rc.31",
     "@tamagui/static": "^2.0.0-rc.31",
     "@tanstack/react-query": "^5.91.3",
@@ -51,7 +51,8 @@
     "react-native-uuid": "^2.0.4",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.5.1",
-    "tamagui": "^2.0.0-rc.31"
+    "tamagui": "^2.0.0-rc.31",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@tamagui/babel-plugin": "^2.0.0-rc.31",
