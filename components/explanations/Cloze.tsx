@@ -1,4 +1,3 @@
-import { useState } from "react";
 //import { type InputField } from '../questions/DynamicWordInputs';
 import { Text, View } from "react-native";
 import type { QuestionAttemptAssesmentResultsProps } from "../types";
@@ -25,9 +24,7 @@ type Props = {
 
 const ClozeExplanation = ({ content,  processQuestionResults }: Props) => {
  
-  console.log("----- XXXXXXXXXXXXXXX------------- ClozeExplanation component mounted with content=", content, " and processQuestionResults=", processQuestionResults);
-  const [arrayOfInputFields, setArrayOfInputFields] = useState<InputField[][]>() // array of input fields 
-
+  
   
   return (
     <View>

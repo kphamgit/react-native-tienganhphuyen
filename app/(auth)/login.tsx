@@ -36,7 +36,7 @@ export default function LoginScreen() {
   const { signIn } = authContext;
 
   const theme = useTheme()
-  console.log('background:', theme.background.val)
+  //console.log('background:', theme.background.val)
 
   // 2. Initialize the mutation
   const { mutate, isPending, error } = useMutation({

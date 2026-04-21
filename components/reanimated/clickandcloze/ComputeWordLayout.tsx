@@ -182,7 +182,7 @@ export default function ComputeWordLayout({
                     // --->>> won't give you updated values:
                     //        console.log(`index ${i}: order=${o.order.value}, width=${o.width.value}, originalX=${o.originalX.value}, originalY=${o.originalY.value}`);
                   //});
-                  console.log("Now starting timeout to call onLayout for parent...");
+                  // console.log("Now starting timeout to call onLayout for parent...");
                   setTimeout(() => {
                     //console.log("Time is up.  Calling onLayout with numLines: ", numLines.size, " and offsetStyles: ", offsetStyles.current);
                     onLayout({ numLines: numLines.size, wordStyles: offsetStyles.current });

@@ -85,6 +85,28 @@ export interface QuestionProps {
         error_flag: boolean,
       }
 
+      /*
+ quiz_attempt = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE, related_name="question_attempts")
+    #question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="question_attempts")
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="question_attempts", default=1)
+    question_attempt_number = models.IntegerField(default=0)
+    error_flag = models.BooleanField(default=None, null=True)
+    completed = models.BooleanField(default=False)
+    score = models.IntegerField(default=0)
+    completed = models.BooleanField(default=False)
+    answer = models.CharField(max_length=1000, blank=True, null=True, default="")
+      */
+
+      export interface QuestionAttemptProps {
+        id: number,
+        question_attempt_number: number,
+        question_id: number,
+        quiz_attempt_id: number,
+        error_flag: boolean,
+        score: number,
+        completed: boolean,
+      }
+
       export interface QuizAttemptProps {
         id: number,
         quiz_id: number,

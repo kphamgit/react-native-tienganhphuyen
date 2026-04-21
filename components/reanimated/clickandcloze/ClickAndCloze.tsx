@@ -41,7 +41,7 @@ function parseContent(content: string): { inputFields: InputItem[]; wordBankWord
       }
     });
   const wordBankWords = inputFields.filter(i => i.type === 'fill').map(i => i.value);
-  console.log("parseContent: inputFields: ", inputFields);
+  // console.log("parseContent: inputFields: ", inputFields);
   return { inputFields, wordBankWords };
 }
 
@@ -144,7 +144,7 @@ const onInputRowLayout = (e: LayoutChangeEvent) => {
  // In onFillSlotLayout:
 const onFillSlotLayout = (e: LayoutChangeEvent, fillIndex: number) => {
   const { x, y, height } = e.nativeEvent.layout;
-  console.log(`onFillSlotLayout for fill index ${fillIndex}:  height=${height}`);
+  //console.log(`onFillSlotLayout for fill index ${fillIndex}:  height=${height}`);
   measuredFills.current[fillIndex] = { x, y };
   if (fillIndex === 0 && !slotHeightMeasured.current) {
     slotHeightMeasured.current = true;
