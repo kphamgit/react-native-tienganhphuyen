@@ -263,6 +263,39 @@ const createNextQuestionAttempt = async (quizAttemptId: number) => {
   const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt_react_native/`;
    console.log("createNextQuestionAttempt POSTing to url =", url);
 
+  const next_question = remainingQuestions[0]; // first question in the 
+  console.log("***** Next question to display (first question in remainingQuestions):", next_question.id);
+
+
+   // remove the next question from remainingQuestions  
+   console.log("^^^^^^^^^^^^^^ Removing question with id", next_question.id, " from remainingQuestions");
+   setRemainingQuestions(prev => prev.filter(q => q.id !== next_question.id));
+
+   setQuestion(next_question || undefined);
+   translateX.value = screenWidth;
+   translateX.value = withTiming(0, { duration: 300 });
+    opacityResults.value = withTiming(0, { duration: 400 });
+    setShowContinueButton(false);
+
+  try {
+    const response = await api.post<{ question_attempt_id: number }>(url, {
+      question_id: next_question.id, // we send the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt, which should trigger an error response from the server that we can catch and log.
+    });
+    //console.log("createNextQuestionAttempt , Received response from create_next_question_attempt:", response.data);
+
+    const { question_attempt_id } = response.data;
+    console.log("createNextQuestionAttempt, question_attempt_id from server:", question_attempt_id);
+    setQuestionAttemptId(question_attempt_id);
+  } catch (error) {
+    console.error("Error creating next question attempt:", error);
+  }
+};
+
+const createNextQuestionAttemptSave = async (quizAttemptId: number) => {
+  //console.log("createNextQuestionAttempt called with quizAttemptId:", quizAttemptId, " questionId:", questionId);
+  const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt_react_native/`;
+   console.log("createNextQuestionAttempt POSTing to url =", url);
+
    //const next_question = remainingQuestions.find(q => q.id === questionId) || null;
    //if (!next_question) {
    // console.warn("Next question with id", questionId, " not found in remainingQuestions. Remaining questions:", remainingQuestions);
@@ -319,14 +352,26 @@ const createNextQuestionAttempt = async (quizAttemptId: number) => {
     console.log("handleContinue called. Remaining questions in state:") ;
     remainingQuestions.forEach(q => console.log("Question id:", q.id, "question number:", question?.question_number, " content:", q.content));
     setQuestionAttemptAssessmentResults(null);
+    //fades the results/explanation panel out to opacity 0 over 200ms as the user taps Continue
+    //opacityResults.value = withTiming(0, { duration: 200 });
+    //slides the current question off-screen to the left over 300ms (the exit animation)
+   // translateX.value = withTiming(-screenWidth, { duration: 300 });
+   
+  };
+
+  const handleContinueSave = async () => {
+    // print out all questions in remainingQuestions for debugging
+    console.log("handleContinue called. Remaining questions in state:") ;
+    remainingQuestions.forEach(q => console.log("Question id:", q.id, "question number:", question?.question_number, " content:", q.content));
+    setQuestionAttemptAssessmentResults(null);
     opacityResults.value = withTiming(0, { duration: 200 });
     translateX.value = withTiming(-screenWidth, { duration: 300 });
     // Start API call immediately in parallel with the slide-out animation
     // retrieve next question from remainingQuestions 
     // remainingQuestions array is the next question to display,
     // createNextQuestionAttempt(quizAttempt.id, nextQuestionId);
-    createNextQuestionAttempt(quizAttempt.id); // we pass the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt, which should trigger an error response from the server that we can catch and log.
-    
+    //createNextQuestionAttempt(quizAttempt.id); // we pass the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt,
+    //  which should trigger an error response from the server that we can catch and log.
   };
 
   const animatedStylesResults = useAnimatedStyle(() => ({
