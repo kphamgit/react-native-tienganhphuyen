@@ -1,5 +1,3 @@
-
-
 //import { useNavigationContext } from '@/components/context/NavigationContext';
 import api from '@/api/axios';
 import CheckboxGroup from '@/components/CheckBoxGroup';
@@ -14,7 +12,7 @@ import MultipleInputs from '@/components/MultipleInputs';
 import MyRadioGroup from '@/components/MyRadioGroup';
 import ClickAndCloze from '@/components/reanimated/clickandcloze/ClickAndCloze';
 import DuoDragDrop from '@/components/reanimated/duolingo/DuoDragDrop';
-import { ChildQuestionRef, ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionProps, QuizAttemptProps } from '@/components/types';
+import { ChildQuestionRef, ProcessQuestionAttemptResultsProps, QuestionAttemptAssesmentResultsProps, QuestionAttemptProps, QuestionProps, QuizAttemptProps } from '@/components/types';
 import WordsSelect from '@/components/WordsSelect';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -63,6 +61,11 @@ export default function QuizScreen() {
   const [remainingQuestions, setRemainingQuestions] = useState<QuestionProps[]>([]); // State to hold all questions in the quiz attempt, which is used to determine when we are at the last question in the quiz
   const [hasMoreQuestions, setHasMoreQuestions] = useState<boolean>(true); // State to track if there are more questions to fetch from the server. This is used in conjunction with the isFetching ref to prevent duplicate fetches when we are at the end of the currently loaded questions and waiting for the next batch of questions to load from the server
   const isFetching = useRef(false);
+
+  const [wrongQuestionAttempts, setWrongQuestionAttempts] = useState<number[]>([]); // State to hold incorrectly answered question attempts for review after finishing the quiz
+  const [reviewState, setReviewState] = useState<boolean>(false); // State to manage the flow of reviewing incorrectly answered questions after finishing the quiz. We start in the "initial" state where we show the end of quiz screen with the final score and a button to review incorrectly answered questions. When the user clicks the button to review incorrectly answered questions, we transition to the "reviewing_incorrect" state where we load and show incorrectly answered questions one by one with a button to go to the next question until there are no more incorrectly answered questions to review, at which point we transition to the "completed" state where we show a message that the review is complete and a button to navigate back to the unit screen.
+  
+    
 
   //use AuthContext to get user info
   const user_name = useAuth()?.userName || 'default_user';
@@ -263,39 +266,6 @@ const createNextQuestionAttempt = async (quizAttemptId: number) => {
   const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt_react_native/`;
    console.log("createNextQuestionAttempt POSTing to url =", url);
 
-  const next_question = remainingQuestions[0]; // first question in the 
-  console.log("***** Next question to display (first question in remainingQuestions):", next_question.id);
-
-
-   // remove the next question from remainingQuestions  
-   console.log("^^^^^^^^^^^^^^ Removing question with id", next_question.id, " from remainingQuestions");
-   setRemainingQuestions(prev => prev.filter(q => q.id !== next_question.id));
-
-   setQuestion(next_question || undefined);
-   translateX.value = screenWidth;
-   translateX.value = withTiming(0, { duration: 300 });
-    opacityResults.value = withTiming(0, { duration: 400 });
-    setShowContinueButton(false);
-
-  try {
-    const response = await api.post<{ question_attempt_id: number }>(url, {
-      question_id: next_question.id, // we send the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt, which should trigger an error response from the server that we can catch and log.
-    });
-    //console.log("createNextQuestionAttempt , Received response from create_next_question_attempt:", response.data);
-
-    const { question_attempt_id } = response.data;
-    console.log("createNextQuestionAttempt, question_attempt_id from server:", question_attempt_id);
-    setQuestionAttemptId(question_attempt_id);
-  } catch (error) {
-    console.error("Error creating next question attempt:", error);
-  }
-};
-
-const createNextQuestionAttemptSave = async (quizAttemptId: number) => {
-  //console.log("createNextQuestionAttempt called with quizAttemptId:", quizAttemptId, " questionId:", questionId);
-  const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt_react_native/`;
-   console.log("createNextQuestionAttempt POSTing to url =", url);
-
    //const next_question = remainingQuestions.find(q => q.id === questionId) || null;
    //if (!next_question) {
    // console.warn("Next question with id", questionId, " not found in remainingQuestions. Remaining questions:", remainingQuestions);
@@ -311,11 +281,17 @@ const createNextQuestionAttemptSave = async (quizAttemptId: number) => {
    setRemainingQuestions(prev => prev.filter(q => q.id !== next_question.id));
 
    setQuestion(next_question || undefined);
+
+   //instantly moves the new question off-screen to the right (e.g., 390px right). No animation, just a snap.
    translateX.value = screenWidth;
+   //immediately overrides that with an animation that slides it back to 0 (its normal position) over 300ms.
+   //  Together, lines 283+286 create the "slide in from the right" effect for the new question.
    translateX.value = withTiming(0, { duration: 300 });
+   //  fades the results panel (the explanation/correct-incorrect feedback) out over 400ms, 
+   // so it disappears as the new question slides in.
     opacityResults.value = withTiming(0, { duration: 400 });
     setShowContinueButton(false);
-
+//const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt_react_native/`;
   try {
     const response = await api.post<{ question_attempt_id: number }>(url, {
       question_id: next_question.id, // we send the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt, which should trigger an error response from the server that we can catch and log.
@@ -352,26 +328,14 @@ const createNextQuestionAttemptSave = async (quizAttemptId: number) => {
     console.log("handleContinue called. Remaining questions in state:") ;
     remainingQuestions.forEach(q => console.log("Question id:", q.id, "question number:", question?.question_number, " content:", q.content));
     setQuestionAttemptAssessmentResults(null);
-    //fades the results/explanation panel out to opacity 0 over 200ms as the user taps Continue
-    //opacityResults.value = withTiming(0, { duration: 200 });
-    //slides the current question off-screen to the left over 300ms (the exit animation)
-   // translateX.value = withTiming(-screenWidth, { duration: 300 });
-   
-  };
-
-  const handleContinueSave = async () => {
-    // print out all questions in remainingQuestions for debugging
-    console.log("handleContinue called. Remaining questions in state:") ;
-    remainingQuestions.forEach(q => console.log("Question id:", q.id, "question number:", question?.question_number, " content:", q.content));
-    setQuestionAttemptAssessmentResults(null);
     opacityResults.value = withTiming(0, { duration: 200 });
     translateX.value = withTiming(-screenWidth, { duration: 300 });
     // Start API call immediately in parallel with the slide-out animation
     // retrieve next question from remainingQuestions 
     // remainingQuestions array is the next question to display,
     // createNextQuestionAttempt(quizAttempt.id, nextQuestionId);
-    //createNextQuestionAttempt(quizAttempt.id); // we pass the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt,
-    //  which should trigger an error response from the server that we can catch and log.
+    createNextQuestionAttempt(quizAttempt.id); // we pass the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt, which should trigger an error response from the server that we can catch and log.
+    
   };
 
   const animatedStylesResults = useAnimatedStyle(() => ({
@@ -452,6 +416,7 @@ const createNextQuestionAttemptSave = async (quizAttemptId: number) => {
       }
     };
 
+    /*
   const loadIncorrectQuestions = () => {
     api.get(`/api/quiz_attempts/${quizAttempt?.id}/incorrect_questions/`)
       .then((response) => {
@@ -460,6 +425,57 @@ const createNextQuestionAttemptSave = async (quizAttemptId: number) => {
       })
       .catch((error) => {
         console.error("Error fetching incorrectly answered questions:", error);
+      });
+  }
+*/
+
+  
+const loadIncorrectQuestions = (starting_question_attempt_number: number) => {
+    console.log("------>>>>><<<<<<<<<< loadIncorrectQuestions <<<<called for starting question att number", starting_question_attempt_number);
+    isFetching.current = true;
+    
+    api.post(`/api/quiz_attempts/${quizAttempt?.id}/incorrect_questions/`, 
+      {   
+        starting_question_attempt_number: starting_question_attempt_number,
+      })
+      .then(async (response) => {
+        console.log("Incorrect questions for this quiz attempt: response data:", response.data);
+        const first_error_question = response.data.questions.length > 0 ? response.data.questions[0] : null;
+        setQuestion(response.data.questions.length > 0 ? response.data.questions[0] : undefined);
+        translateX.value = screenWidth;
+        translateX.value = withTiming(0, { duration: 300 });
+        // exclude the this first question from the list of remaining questions since we have already set it as the current question, and we want to avoid showing it again as we review through incorrectly answered questions
+        setRemainingQuestions(response.data.questions.slice(1));
+        //setWrongQuestionAttempts(response.data.incorrect_question_attempts);
+        const wrong_question_attempt_numbers = response.data.incorrect_question_attempts.map(
+          (attempt: QuestionAttemptProps) => attempt.question_attempt_number
+        );
+        setWrongQuestionAttempts(wrong_question_attempt_numbers);
+        setReviewState(true); // transition to "reviewing_incorrect" 
+        // has_more_incorrect flag indicates whether there are more incorrectly answered questions to load from the server for review.
+        //  We use this flag in conjunction with the isFetching ref to prevent duplicate fetches when we are at the end of the currently loaded incorrectly answered questions and waiting for the next batch of incorrectly answered questions to load from the server as the user reviews through them one by one.
+        setHasMoreQuestions(response.data.has_more_incorrect);
+        // setQuestionAttemptId(response.data.question_attempt_id); // server creates the question_attempt for the first errorneous question.
+        const url = `/api/quiz_attempts/${quizAttempt?.id}/create_next_question_attempt_react_native/`;
+  try {
+    const response = await api.post<{ question_attempt_id: number }>(url, {
+      question_id: first_error_question.id, // we send the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt, which should trigger an error response from the server that we can catch and log.
+    });
+    //console.log("createNextQuestionAttempt , Received response from create_next_question_attempt:", response.data);
+
+    const { question_attempt_id } = response.data;
+    console.log("createNextQuestionAttempt, question_attempt_id from server:", question_attempt_id);
+    setQuestionAttemptId(question_attempt_id);
+  } catch (error) {
+    console.error("Error creating next question attempt:", error);
+  }
+    
+        //setHasMoreQuestions(false); // we assume the number of incorrectly answered questions is small enough that we can load them all at once without needing to paginate. If this becomes an issue, we can implement pagination for incorrectly answered questions as well.
+        isFetching.current = false;
+      })
+      .catch((error) => {
+        console.error("Error fetching incorrectly answered questions:", error);
+        isFetching.current = false;
       });
   }
 
@@ -510,7 +526,7 @@ const createNextQuestionAttemptSave = async (quizAttemptId: number) => {
           <View style={{ flex: 1,flexDirection: "row", padding: 10, marginBottom: 0, backgroundColor: 'orange', borderRadius: 10, width: '100%' }}>
            
               { displayFeedback(question?.format.toString() || '', questionAttemptAssessmentResults) }
-       
+  
           </View>
         </Animated.View>
 
@@ -525,10 +541,12 @@ const createNextQuestionAttemptSave = async (quizAttemptId: number) => {
                 onPress={() => {
                   setShowEndOfQuizModal(false);
                   // TODO: load incorrect questions into remainingQuestions
+                  loadIncorrectQuestions(1);
                 }}
                 style={{ backgroundColor: '#007AFF', borderRadius: 10, padding: 14, alignItems: 'center' }}
               >
                 <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 16 }}>Revisit Incorrect</Text>
+               
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -689,6 +707,5 @@ const styles = StyleSheet.create({
 
       </View>
 */
-
 
 

@@ -1,6 +1,6 @@
 import React, { JSX, useRef, useState } from "react";
 import { StyleSheet, View, type LayoutRectangle, type StyleProp, type ViewStyle } from "react-native";
-import DebugGrid from "./DebugGrid";
+//import DebugGrid from "./DebugGrid";
 import { Offset } from "./type";
 
 export interface ComputeWordLayoutProps {
@@ -60,7 +60,7 @@ export default function ComputeWordLayout({
 
   return (
     <>
-      <DebugGrid width={dimensions.width} height={dimensions.height} />
+     
       <View
         style={[styles.computeWordLayoutContainer, styles["center"], { columnGap: wordGap * 2, rowGap: wordGap }]}
         onLayout={(e) => {
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     // container as intended.
     flexWrap: "wrap", // flexWrap affects how the words are laid out inside the ComputeWordLayout container.
     // with flexWrap: "wrap", the words will automatically wrap to the next line when they reach the edge of the container,
-    opacity: 20,
+    opacity: 0,
     width: "100%", // width=100% makes the ComputeWordLayout container take up the full width of its parent, 
     // which is important for calculating word positions relative to the container and for
     //  ensuring that words wrap correctly based on the CONTAINER WIDTH.

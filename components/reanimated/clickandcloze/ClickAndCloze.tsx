@@ -5,7 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
 import ClickableWordNew from './ClickableWordNew';
 import ComputeWordLayout from './ComputeWordLayout';
-import DebugGrid from './DebugGrid';
+//import DebugGrid from './DebugGrid';
 import Word from './Word';
 import WordContext from './WordContext';
 
@@ -223,7 +223,7 @@ const wordElements = useMemo(() => {
     if (!initialized) {
         return (
             <View style={styles.container} onLayout={onLayout}>
-                <DebugGrid width={dimensions.width} height={dimensions.height} />
+               
                 <ComputeWordLayout
                     offsets={offsets}
                     onLayout={setLayout}
@@ -313,7 +313,7 @@ const wordElements = useMemo(() => {
         })()}
       </View>
       <View style={{ minHeight: wordBankHeight }} />
-      <View style={[StyleSheet.absoluteFill, { zIndex: 1, backgroundColor: 'rgba(0,255,0,0.2)' }]}>
+      <View style={[StyleSheet.absoluteFill, { zIndex: 1 }]}>
         {wordElements.map((child, index) => (
           <Fragment key={`${wordBankWords[index]}-f-${index}`}>
             <ClickableWordNew
@@ -341,7 +341,6 @@ const wordElements = useMemo(() => {
 const styles = StyleSheet.create({
   container: {
     flex: 0,
-    backgroundColor: 'yellow',
     margin: 10,
   },
   inputRow: {

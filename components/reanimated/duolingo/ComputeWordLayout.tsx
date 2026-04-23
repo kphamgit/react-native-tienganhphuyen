@@ -1,6 +1,6 @@
 import React, { JSX, useRef, useState } from "react";
 import { StyleSheet, View, type LayoutRectangle, type StyleProp, type ViewStyle } from "react-native";
-import DebugGrid from "./DebugGrid";
+//import DebugGrid from "./DebugGrid";
 import { type Offset } from "./Layout";
 
 export interface ComputeWordLayoutProps {
@@ -48,7 +48,7 @@ export default function ComputeWordLayout({
 
   return (
     <>
-      <DebugGrid width={dimensions.width} height={dimensions.height} />
+      
       <View
         style={[styles.computeWordLayoutContainer, styles[wordBankAlignment]]}
         onLayout={(e) => {
