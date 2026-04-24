@@ -74,21 +74,18 @@ export default function QuizScreen() {
 
   const [remainingQuestions, setRemainingQuestions] = useState<{question: QuestionProps, question_attempt_number?: number}[]>([]); // State to hold the remaining questions in the quiz attempt that have not been attempted yet. We initialize this as an empty array and populate it with the questions from the server response when we fetch or create the quiz attempt in the useEffect on component mount. When the user answers a question and clicks "Continue", we remove the next question to display from this remainingQuestions array and set it as the current question, so that we can have a smooth transition to the next question while waiting for the server response to create the next question attempt. We also use the length of this remainingQuestions array in another useEffect to determine when we are at the end of the currently loaded questions and need to fetch more questions from the server if there are more questions in the quiz (hasMoreQuestions is true).
   //const [remainingQuestions, setRemainingQuestions] = useState<QuestionProps[]>([]); // State to hold all questions in the quiz attempt, which is used to determine when we are at the last question in the quiz
-  // const [hasMoreQuestions, setHasMoreQuestions] = useState<boolean>(true); // State to track if there are more questions to fetch from the server. This is used in conjunction with the isFetching ref to prevent duplicate fetches when we are at the end of the currently loaded questions and waiting for the next batch of questions to load from the server
+  const [hasMoreQuestions, setHasMoreQuestions] = useState<boolean>(true); // State to track if there are more questions to fetch from the server. This is used in conjunction with the isFetching ref to prevent duplicate fetches when we are at the end of the currently loaded questions and waiting for the next batch of questions to load from the server
   const isFetching = useRef(false);
 
   const [wrongQuestionAttempts, setWrongQuestionAttempts] = useState<number[]>([]); // State to hold incorrectly answered question attempts for review after finishing the quiz
   const [reviewState, setReviewState] = useState<boolean>(false); // State to manage the flow of reviewing incorrectly answered questions after finishing the quiz. We start in the "initial" state where we show the end of quiz screen with the final score and a button to review incorrectly answered questions. When the user clicks the button to review incorrectly answered questions, we transition to the "reviewing_incorrect" state where we load and show incorrectly answered questions one by one with a button to go to the next question until there are no more incorrectly answered questions to review, at which point we transition to the "completed" state where we show a message that the review is complete and a button to navigate back to the unit screen.
   
-  const thereAreIncorrectQuestions = useRef<boolean>(false); // State to track if there are incorrectly answered questions to review after finishing the quiz, which is used to conditionally show the button to review incorrectly answered questions on the end of quiz screen
+    
 
   //use AuthContext to get user info
   const user_name = useAuth()?.userName || 'default_user';
   console.log("QuizScreen rendered with user_name:", user_name);
 
-  const currentQuestionNumberRef = useRef<number>(0); // we use a ref to hold the current question number so that we can access it in the useEffect
-  //  that listens for changes in remainingQuestions to determine when we are at the end of the currently loaded questions
-  //  and need to fetch more questions from the server. 
 
   useEffect(() => {
      api.post(`/api/quiz_attempts/get_or_create_react_native/${id}/`, { user_name: user_name })  // use a fixed user id for now
@@ -102,7 +99,7 @@ export default function QuizScreen() {
          setQuestion(first_question);
          setQuestionAttemptId(response.data.question_attempt_id);
          setQuizAttempt(response.data.quiz_attempt);
-         //setHasMoreQuestions(response.data.has_more ?? false);
+         setHasMoreQuestions(response.data.has_more ?? false);
          setLoading(false);
          
       })
@@ -154,20 +151,23 @@ export default function QuizScreen() {
   immediately repeats a question. Without this extraData (questionAttemptId), the component doesn't get rerendered
   because the words content doesn't change. 
    */         
-/*
+
           useEffect(() => {
             console.log("useEffect ******* to check remaining questions. Remaining questions length:", remainingQuestions.length, " isFetching:", isFetching.current);
             if (remainingQuestions.length === 1 && !isFetching.current) {
               isFetching.current = true;
               if (reviewState) {
-                console.log("----<<<<<<<<<>>>>>>> In review state, fetching incorrectly answered questions from server for quiz attempt id:", quizAttempt?.id);
+                console.log("---->>>>>>> In review state, fetching incorrectly answered questions from server for quiz attempt id:", quizAttempt?.id);
                 // retrieve the last question attempt number in the wrongQuestionAttempts array, 
                 //const last_wrong_attempt_number 
                 // get last_wrong_question_attempts from the remainingQuestions array in state,
                 const last_wrong_attempt_number = remainingQuestions[remainingQuestions.length - 1].question_attempt_number;
                 console.log("Last wrong question attempt number:", last_wrong_attempt_number);
                 loadIncorrectQuestions((last_wrong_attempt_number ?? 0))
-           
+              /*
+The isFetching ref prevents duplicate fetches if the component re-renders while the request is in flight.
+// path("quizzes/<int:pk>/questions/<int:starting_question_number>"
+              */
               }
               else {
                 console.log("\nRemaining questions size is 1, fetching more questions from server. Remaining questions length:", remainingQuestions.length);
@@ -192,35 +192,7 @@ export default function QuizScreen() {
 
             }
           }, [remainingQuestions.length]);
-  */
-
-   useEffect(() => {
-      console.log("useEffect ******* to check remaining questions. Remaining questions length:", remainingQuestions.length, " isFetching:", isFetching.current);
-      if (remainingQuestions.length === 0 && loading === false && quizAttempt !== null && !isFetching.current) {
-          isFetching.current = true;
-          console.log("\nNo more remaining questions in state. Fetch more questions,  currentQuestionNumberRef:", currentQuestionNumberRef.current);
-          api.post(`/english/quizzes/${id}/questions/${currentQuestionNumberRef.current + 1}`,
-            { quiz_attempt_id: quizAttempt?.id },
-          )  // send the current question number
-            .then((response) => {
-              console.log("Questions fetched from server:");
-              //response.data.questions.forEach((q: QuestionProps) => console.log("Question id:", q.id, " question number:", q.question_number, " content:", q.content));
-              console.log("---- data ------ from server:", response.data);
-              if (response.data.questions.length === 0) {
-                console.log("No more questions returned from server.");
-              }
-              else {
-                console.log("More questions returned from server, adding to remainingQuestions in state. Questions returned:", response.data.questions.length);
-                setRemainingQuestions(prev => [...prev, ...response.data.questions.map((q: QuestionProps) => ({ question: q }))]);
-              }
-              // add fetched questions to remainingQuestions
-              
-              // 
-              isFetching.current = false;
-            })
-            .catch(() => { isFetching.current = false; });
-      }
-    }, [remainingQuestions.length]);
+          
 
    useEffect(() => {
     // Listen for keyboard events
@@ -254,46 +226,43 @@ export default function QuizScreen() {
     Keyboard.dismiss();
     setKeyboardHeight(0); // Reset keyboard height
    
-    //console.log("Check button pressed. User answer from child component:", childQuestionRef.current?.getAnswer());
+    console.log("Check button pressed. User answer from child component:", childQuestionRef.current?.getAnswer());
     //console.log("handleSubmit called for user ansswer=", childRef.current?.getAnswer());
-    /*
     let url = null
     if (reviewState) {
       url = `/api/question_attempts/${questionAttemptId}/process_review_state/`;
     }
     else {
-      url = `/api/question_attempts/${questionAttemptId}/process_react_native/`;
+      url = `/api/question_attempts/${questionAttemptId}/process/`;
     }
-      */
-
     const uanswer = childQuestionRef.current?.getAnswer();  
     const aKey = question?.answer_key;
    
-    const url = `/api/question_attempts/${questionAttemptId}/process_react_native/`;
-
     api.post<ProcessQuestionAttemptResultsProps>(url, { format: question?.format, user_answer: uanswer, answer_key: aKey })
       .then((res) => {
         // server returns the next question id (if any), together with assessment results 
         console.log("---->>>> Received response from server after processing question attempt:", res.data);
-    
-        const { assessment_results, quiz_attempt_has_errors } = res.data;
+        /*
+{"assessment_results": {"cloze_question_results": [[Object]], "error_flag": false, "score": 5}, "quiz_attempt": {"completed": true, "score": 35}
+        */
+        const { assessment_results } = res.data;
         //console.log("Assessment results from server:", assessment_results);
         //console.log("Next question id from server:", next_question_id);
         setQuestionAttemptAssessmentResults(assessment_results);
-        if (thereAreIncorrectQuestions.current === false && assessment_results.error_flag === true) {
-          thereAreIncorrectQuestions.current = true;
-        }
         opacityResults.value = withTiming(1, { duration: 100 });
         // check if there are questions in remainingQuestions. 
         //const next_question_available = remainingQuestions.length > 0;
         // server checks for quiz completion and returns results back
-        //console.log("Quiz attempt completion status from server response:", res.data.quiz_attempt.completed);
-        if (remainingQuestions.length === 0 && quiz_attempt_has_errors === false) {
-          setEndOfQuiz(true)
-        } else if (remainingQuestions.length === 0) { // no more questions but there are errors
-           setShowEndOfQuizModal(true);
+        console.log("Quiz attempt completion status from server response:", res.data.quiz_attempt.completed);
+        if (res.data.quiz_attempt.completed) {
+          //setShowContinueButton(true);
+          setEndOfQuiz(true);
         }
-        else {  // there are more questions to show, 
+        else if (res.data.next_question_id === null) {
+          console.log("No next question id returned from server, but quiz is not completed. This likely means there are errorneous questions");
+           // show Continue button to fetch more questions from server if hasMoreQuestions is true, otherwise show end of quiz modal
+          setShowEndOfQuizModal(true);
+        } else {
           setShowContinueButton(true);
         }
       })
@@ -305,7 +274,6 @@ export default function QuizScreen() {
 const createNextQuestionAttempt = async (quizAttemptId: number) => {
   const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt_react_native/`;
   const next_question = remainingQuestions[0]; // first question in the 
-  currentQuestionNumberRef.current = next_question.question.question_number; // we use a ref to hold the current question number so that we can access it in the useEffect that listens for changes in remainingQuestions to determine when we are at the end of the currently loaded questions and need to fetch more questions from the server. We set this ref to the question number of the next question to display before we even make the API call to create the next question attempt, so that we can have the correct current question number available in that useEffect for the API call to fetch more questions when we are at the end of the currently loaded questions.
   console.log("***** createNextQuestionAttempt Next question:", next_question.question.id);
    // remove the next question from remainingQuestions  
    setRemainingQuestions(prev => prev.filter(q => q.question.id !== next_question.question.id));
@@ -321,6 +289,7 @@ const createNextQuestionAttempt = async (quizAttemptId: number) => {
    // so it disappears as the new question slides in.
     opacityResults.value = withTiming(0, { duration: 400 });
     setShowContinueButton(false);
+//const url = `/api/quiz_attempts/${quizAttemptId}/create_next_question_attempt_react_native/`;
   try {
     const response = await api.post<{ question_attempt_id: number, question_attempt_number: number }>(url, {
       question_id: next_question.question.id, // we send the question id of the next question to createNextQuestionAttempt, which uses this to tell the server which question attempt to create next. We also use this question id to find the next question in the remainingQuestions array and set it as the current question immediately for a smooth user experience, while waiting for the server response. If test_next_question is undefined (which shouldn't happen because we should have already checked that there is a next question before showing the Continue button), we pass null to createNextQuestionAttempt, which should trigger an error response from the server that we can catch and log.
@@ -491,7 +460,7 @@ const createFirstQuestionAttempt = async (question_id: number) => {
       })));
 
       //setWrongQuestionAttempts(wrong_question_attempt_numbers);
-      //setHasMoreQuestions(response.data.has_more_incorrect);
+      setHasMoreQuestions(response.data.has_more_incorrect);
       return response.data.incorrect_questions.length > 0 ? response.data.incorrect_questions[0].question : null; // Return the first incorrectly answered question to review, or null if there are no incorrectly answered questions
       
 
@@ -537,7 +506,6 @@ const createFirstQuestionAttempt = async (question_id: number) => {
         }
       ]}>
           <View>
-            <Text>Current Q Number Ref: {currentQuestionNumberRef.current}</Text>
                   <Text>Wrong qats: {JSON.stringify(wrongQuestionAttempts)}</Text>
                   <Text>Question id: {question?.id} Review state: {reviewState.toString()},  Remaining questions:</Text>
                     { remainingQuestions.map((q, index) => (

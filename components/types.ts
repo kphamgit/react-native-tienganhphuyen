@@ -69,6 +69,7 @@ export interface QuestionProps {
             score: number,
         }
         next_question_id? : number,
+        quiz_attempt_has_errors: boolean,
       }
       
       export interface QuestionAttemptAssesmentResultsProps {
