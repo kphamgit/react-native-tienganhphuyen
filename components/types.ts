@@ -116,6 +116,7 @@ export interface QuestionProps {
         created_at: string,
         updated_at: string,
         completion_status: string,
+        review_state: string,
       }
     
       export interface QuizAttemptCreatedProps {
