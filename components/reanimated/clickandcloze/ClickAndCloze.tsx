@@ -26,13 +26,17 @@ function parseContent(content: string): { inputFields: InputItem[] } {
   let fillCounter = 0;
   const inputFields: InputItem[] = parts
     .filter(part => part.length > 0)
-    .map((part, index) => {
+    .flatMap((part, index): InputItem[] => {
       if (part.startsWith('[') && part.endsWith(']')) {
         const isFirst = fillCounter === 0;
         fillCounter++;
-        return { type: 'fill', value: part.slice(1, -1), id: `fill_${index}`, readyForFill: isFirst };
+        return [{ type: 'fill' as const, value: part.slice(1, -1), id: `fill_${index}`, readyForFill: isFirst }];
       } else {
-        return { type: 'text', value: part, id: `text_${index}` };
+        return part.trim().split(/\s+/).filter(w => w.length > 0).map((word, wi) => ({
+          type: 'text' as const,
+          value: word,
+          id: `text_${index}_${wi}`,
+        }));
       }
     });
   return { inputFields };
@@ -280,7 +284,7 @@ const wordElements = useMemo(() => {
     <GestureHandlerRootView>
     <View style={styles.container}>
        
-      <View style={[styles.inputRow, { backgroundColor: 'red', width: '100%' }]} onLayout={onInputRowLayout}>
+      <View style={[styles.inputRow, { backgroundColor: 'white', width: '100%' }]} onLayout={onInputRowLayout}>
         {(() => {
           let fillIndex = 0;
           return inputFields?.map((item) =>
@@ -329,7 +333,7 @@ const wordElements = useMemo(() => {
 const styles = StyleSheet.create({
   container: {
     flex: 0,
-    margin: 0,
+    margin: 5,
   },
   inputRow: {
     flexDirection: 'row',
@@ -343,7 +347,7 @@ const styles = StyleSheet.create({
   },
   inputText: {
     fontSize: 16,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   fillLot: {
     fontSize: 16,
