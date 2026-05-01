@@ -27,6 +27,7 @@ export interface ClickableWordProps {
   wordBankOffsetY: number;
   lineGap: number;
   parentFunc: () => void;
+  language: string;
 }
 
 const ClickableWord = ({
@@ -44,6 +45,7 @@ const ClickableWord = ({
   lineGap,
   onDrop,
   parentFunc,
+  language
 }: ClickableWordProps) => {
   const offset = offsets[index];
   const isAnimating = useSharedValue(false);
@@ -105,7 +107,11 @@ const ClickableWord = ({
 
   useEffect(() => {
     const word = children.key?.split('-')[0];
-    const my_mp3 = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/${word}.mp3`;
+    // console.log("ClickableWord useEffect: word=", word, "language=", language); 
+    let my_mp3 = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/${word}.mp3`;
+    if (language === 'fr') {
+      my_mp3 = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/fr_${word}.mp3`;
+    }
     setMp3(my_mp3);
     setPlayer(createAudioPlayer(my_mp3));
   }, [children]);

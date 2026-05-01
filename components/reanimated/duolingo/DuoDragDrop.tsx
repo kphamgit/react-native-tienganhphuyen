@@ -55,6 +55,7 @@ export interface DuoDragDropProps {
   /** Called when a user taps or drags a word to its destination */
   onDrop?: OnDropFunction;
   enableCheckButton: (value: boolean) => void; //
+  content_language: string;
 }
 
 const DuoDragDrop= React.forwardRef<ChildQuestionRef, DuoDragDropProps>((props, ref) => {
@@ -74,7 +75,9 @@ const DuoDragDrop= React.forwardRef<ChildQuestionRef, DuoDragDropProps>((props, 
     onReady,
     onDrop,
     enableCheckButton, // This is the function that will be called when the user finishes the drag-and-drop
+    content_language,
   } = props;
+  
   const lineHeight = props.lineHeight || wordHeight * 1.2;
   const lineGap = lineHeight - wordHeight;
   const [layout, setLayout] = useState<{ numLines: number; wordStyles: StyleProp<ViewStyle>[] } | null>(null);
@@ -205,6 +208,7 @@ The offsets array itself (its references) is not changed, only the .value proper
             animatedStyleWorklet={animatedStyleWorklet}
             onDrop={onDrop}
             parentFunc={enable_checkButton}
+            language={content_language || 'en'}
           >
             {child}
           </WordProxy>

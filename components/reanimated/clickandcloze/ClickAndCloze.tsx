@@ -3,7 +3,7 @@ import React, { Fragment, useImperativeHandle, useMemo, useState } from 'react';
 import { LayoutChangeEvent, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
-import ClickableWordNew from './ClickableWordNew';
+import ClickableWord from './ClickableWord';
 import ComputeWordLayout from './ComputeWordLayout';
 //import DebugGrid from './DebugGrid';
 import Word from './Word';
@@ -23,56 +23,44 @@ interface InputItem {
     readyForFill?: boolean; // Only for fill items, indicates if the fill slot is ready to accept a word
   }
 
-function parseContent(content: string): { inputFields: InputItem[]; wordBankWords: string[] } {
+function parseContent(content: string): { inputFields: InputItem[] } {
   const parts = content.split(/(\[[^\]]+\])/);
+  let fillCounter = 0;
   const inputFields: InputItem[] = parts
     .filter(part => part.length > 0)
     .map((part, index) => {
       if (part.startsWith('[') && part.endsWith(']')) {
-        // if this is the first fill, mark it as readyForFill, otherwise false.
-        //  The first fill will be the one that is automatically focused and ready to accept
-        //  input from the word bank
-        if (index === 1) 
-            return { type: 'fill', value: part.slice(1, -1), id: `fill_${index}`, readyForFill: true };
-        else
-            return { type: 'fill', value: part.slice(1, -1), id: `fill_${index}`, readyForFill: false };
+        const isFirst = fillCounter === 0;
+        fillCounter++;
+        return { type: 'fill', value: part.slice(1, -1), id: `fill_${index}`, readyForFill: isFirst };
       } else {
         return { type: 'text', value: part, id: `text_${index}` };
       }
     });
-  const wordBankWords = inputFields.filter(i => i.type === 'fill').map(i => i.value);
-  // console.log("parseContent: inputFields: ", inputFields);
-  return { inputFields, wordBankWords };
+  return { inputFields };
 }
 
 interface Props {
    content: string;
+   content_language: string;
    enableCheckButton: (value: boolean) => void;
-   distractors?: string[];
+   wordBank?: string[];
    extraData?: any;
 }
 
 interface InnerProps {
   inputFields: InputItem[];
-  wordBankWords: string[];
+  wordBank: string[];
+  content_language: string;
   enableCheckButton: (value: boolean) => void;
   setDroppedWords: (words: (string | null)[]) => void;
 }
 
-/*
- export interface TakeQuestionProps  {
-    ref?: React.Ref<ChildQuestionRef>;
-    content: string | undefined; // Content of the question, if needed
-    enableCheckButton: (value: boolean) => void; // Function to enable the Check button
-  };
-*/
-
 //const DuoDragDrop= React.forwardRef<ChildQuestionRef, DuoDragDropProps>((props, ref) => {
 //function ClickAndCloze({content, distractors = [], enableCheckButton}: Props) {
   const ClickAndCloze = React.forwardRef<ChildQuestionRef, Props>(
-    ({ content, distractors = [], enableCheckButton, extraData }, ref) => {
-      const { inputFields, wordBankWords } = parseContent(content);
-      const allWords = [...wordBankWords, ...distractors];
+    ({ content, content_language, wordBank = [], enableCheckButton, extraData }, ref) => {
+      const { inputFields } = parseContent(content);
       const fillCount = inputFields.filter(i => i.type === 'fill').length;
       const [droppedWords, setDroppedWords] = useState<(string | null)[]>(
         Array(fillCount).fill(null)
@@ -84,18 +72,17 @@ interface InnerProps {
 
       useImperativeHandle(ref, () => ({
         getAnswer: () => {
-          //console.log('getAnswer droppedWords:', droppedWords);
           return droppedWords.filter(Boolean).join('/');
         }
       }));
 
       const innerKey = `${content}-${JSON.stringify(extraData)}`;
-      return <ClickAndClozeInner key={innerKey} inputFields={inputFields} wordBankWords={allWords} enableCheckButton={enableCheckButton} setDroppedWords={setDroppedWords} />;
+      return <ClickAndClozeInner key={innerKey} inputFields={inputFields} wordBank={wordBank} content_language={content_language} enableCheckButton={enableCheckButton} setDroppedWords={setDroppedWords} />;
     }
   );
-  
 
-function ClickAndClozeInner({inputFields: initialInputFields, wordBankWords, enableCheckButton, setDroppedWords}: InnerProps) {
+
+function ClickAndClozeInner({inputFields: initialInputFields, wordBank, content_language, enableCheckButton, setDroppedWords}: InnerProps) {
 
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
@@ -171,7 +158,7 @@ it anchors to Child2's View (its nearest positioned ancestor)
 
 // initialize offsets
 
-const offsets = wordBankWords.map(() => ({
+const offsets = wordBank.map(() => ({
 order: useSharedValue(0),
 width: useSharedValue(0),
 height: useSharedValue(0),
@@ -200,7 +187,7 @@ const wordElements = useMemo(() => {
   // GOT CHA: kpham Apr 10, 2026
   //return shuffledWords.map((word, index) => (
   // use words directly without shuffling for now to make it easier to debug and verify that the correct words are rendered in the correct positions
-  return wordBankWords.map((word, index) => (
+  return wordBank.map((word, index) => (
     <WordContext.Provider key={`${word}-${index}`} value={{ wordHeight, wordGap, text: word }}>
        <Word />
     </WordContext.Provider>
@@ -215,7 +202,7 @@ const wordElements = useMemo(() => {
 
   // Note: "extraData" provided here is used to force a re-render when the words change.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [wordBankWords, wordHeight, wordGap]);
+}, [wordBank, wordHeight, wordGap]);
 
     const initialized = layout && containerWidth > 0;
     // console.log("Child1: layout: ", layout, "containerWidth: ", containerWidth, "initialized: ", initialized);
@@ -255,7 +242,7 @@ const wordElements = useMemo(() => {
     const newDroppedWords: (string | null)[] = Array(fillCount).fill(null);
     offsets.forEach((o, wordIndex) => {
       if (o.order.value !== -1) {
-        newDroppedWords[o.order.value] = wordBankWords[wordIndex];
+        newDroppedWords[o.order.value] = wordBank[wordIndex];
       }
     });
     setDroppedWords(newDroppedWords);
@@ -315,18 +302,19 @@ const wordElements = useMemo(() => {
       <View style={{ minHeight: wordBankHeight }} />
       <View style={[StyleSheet.absoluteFill, { zIndex: 1 }]}>
         {wordElements.map((child, index) => (
-          <Fragment key={`${wordBankWords[index]}-f-${index}`}>
-            <ClickableWordNew
+          <Fragment key={`${wordBank[index]}-f-${index}`}>
+            <ClickableWord
               offsets={offsets}
               index={index}
               wordHeight={wordHeight}
               wordBankOffsetY={wordBankOffsetY}
+              language={content_language}
               fillSlotPositions={fillSlotPositions}
               parentFunc={enableCheckButton}
               onSlotChange={onSlotChange}
             >
               {child}
-            </ClickableWordNew>
+            </ClickableWord>
           </Fragment>
         ))}
       </View>

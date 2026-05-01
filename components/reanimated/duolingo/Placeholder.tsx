@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { type StyleProp, StyleSheet, View, type ViewStyle } from "react-native";
 import { colors } from "./colors";
 
@@ -7,10 +6,6 @@ interface PlaceholderProps {
 }
 
 function Placeholder({ style }: PlaceholderProps) {
-  useEffect(() => {
-    console.log("Placeholder rendered");  
-  }, []);
-  
   return <View style={[styles.placeholder, style]} />;
 }
 

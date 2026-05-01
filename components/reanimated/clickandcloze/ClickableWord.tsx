@@ -21,6 +21,7 @@ export interface ClickableWordNewProps {
   wordBankOffsetY: number;
   fillSlotPositions: {x: number, y: number}[];
   parentFunc: (value: boolean) => void;
+  language: string;
   onSlotChange: (slotIndex: number | null) => void;
 }
 
@@ -33,6 +34,7 @@ const ClickableWordNew = ({
   fillSlotPositions,
   onDrop,
   parentFunc,
+  language,
   onSlotChange,
 }: ClickableWordNewProps) => {
   const offset = offsets[index];
@@ -73,10 +75,14 @@ useDerivedValue is essentially the worklet equivalent of useMemo — but reactiv
 
 useEffect(() => {
     const word = children.key?.split('-')[0];
-    const my_mp3 = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/${word}.mp3`;
+    // console.log("ClickableWordNew useEffect - word = ", word, " language = ", language);
+    let my_mp3 = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/${word}.mp3`;
+    if (language === 'fr') {
+      my_mp3 = `https://kphamazureblobstore.blob.core.windows.net/tts-audio/fr_${word}.mp3`;
+    }
     setMp3(my_mp3);
     setPlayer(createAudioPlayer(my_mp3));
-  }, [children]);
+  }, [children, language]);
 
 
   const translateX = useDerivedValue(() =>
