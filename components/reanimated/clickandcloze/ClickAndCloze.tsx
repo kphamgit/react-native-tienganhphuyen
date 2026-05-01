@@ -1,6 +1,6 @@
 import { ChildQuestionRef } from '@/components/types';
 import React, { Fragment, useImperativeHandle, useMemo, useState } from 'react';
-import { LayoutChangeEvent, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { LayoutChangeEvent, Modal, Pressable, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
 import ClickableWord from './ClickableWord';
@@ -91,6 +91,8 @@ function ClickAndClozeInner({inputFields: initialInputFields, wordBank, content_
     const [inputFields, setInputFields] = useState<InputItem[]>(initialInputFields);
 
     const [longestText, setLongestText] = useState('');
+    const [popupVisible, setPopupVisible] = useState(false);
+    const [popupFillIndex, setPopupFillIndex] = useState<number | null>(null);
 
     
 
@@ -291,20 +293,27 @@ const wordElements = useMemo(() => {
             item.type === 'text' ? (
               <Text key={item.id} style={[styles.inputText, { lineHeight: wordHeight }]}>{item.value}</Text>
             ) : (
-              <Text
-                key={item.id}
-                style={[item.readyForFill ? styles.fillLotReady : styles.fillLot, 
-                  { lineHeight: wordHeight, height: wordHeight }]}
-                onLayout={(e) => onFillSlotLayout(e, fillIndex++)}
-              >
-                {longestText}
-              </Text>
+              (() => {
+                const myIndex = fillIndex++;
+                return (
+                  <Pressable
+                    key={item.id}
+                    style={[item.readyForFill ? styles.fillLotReady : styles.fillLot,
+                      { height: wordHeight, justifyContent: 'center', alignItems: 'center' }]}
+                    onLayout={(e) => onFillSlotLayout(e, myIndex)}
+                    onPress={() => { setPopupFillIndex(myIndex); setPopupVisible(true); }}
+                  >
+                    <Text style={{ color: 'transparent', fontSize: 16 }}>{longestText}</Text>
+                    <Text style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, textAlign: 'center', textAlignVertical: 'center', opacity: 0.5, fontSize: 16, color: 'black' }}>{'?'}</Text>
+                  </Pressable>
+                );
+              })()
             )
           );
         })()}
       </View>
       <View style={{ minHeight: wordBankHeight, backgroundColor: 'white' }} />
-      <View style={[StyleSheet.absoluteFill, { zIndex: 1 }]}>
+      <View style={[StyleSheet.absoluteFill, { zIndex: 1 }]} pointerEvents="box-none">
         {inputRowHeight > 0 && wordElements.map((child, index) => (
           <Fragment key={`${wordBank[index]}-f-${index}`}>
             <ClickableWord
@@ -323,6 +332,18 @@ const wordElements = useMemo(() => {
         ))}
       </View>
     </View>
+
+    <Modal visible={popupVisible} transparent animationType="fade" onRequestClose={() => setPopupVisible(false)}>
+      <Pressable style={styles.modalOverlay} onPress={() => setPopupVisible(false)}>
+        <View style={styles.modalBox}>
+          <Text style={styles.modalText}>Fill slot {(popupFillIndex ?? 0) + 1}</Text>
+          <Text style={styles.modalText}>Tap a word below to fill this slot.</Text>
+          <TouchableOpacity onPress={() => setPopupVisible(false)}>
+            <Text style={styles.modalClose}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </Pressable>
+    </Modal>
 
     </GestureHandlerRootView>
   );
@@ -369,7 +390,31 @@ const styles = StyleSheet.create({
     backgroundColor:  'white',
     color: 'transparent',
   },
- 
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBox: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    minWidth: 240,
+    gap: 12,
+  },
+  modalText: {
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'center',
+  },
+  modalClose: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+
 })
 
 export default ClickAndCloze
