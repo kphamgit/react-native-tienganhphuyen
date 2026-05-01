@@ -17,8 +17,9 @@ interface LayoutType {
 interface InputItem {
     type: 'text' | 'fill';
     value: string;
-    id: string; // Optional for text items
-    readyForFill?: boolean; // Only for fill items, indicates if the fill slot is ready to accept a word
+    id: string;
+    readyForFill?: boolean;
+    hint?: string;
   }
 
 function parseContent(content: string): { inputFields: InputItem[] } {
@@ -336,8 +337,13 @@ const wordElements = useMemo(() => {
     <Modal visible={popupVisible} transparent animationType="fade" onRequestClose={() => setPopupVisible(false)}>
       <Pressable style={styles.modalOverlay} onPress={() => setPopupVisible(false)}>
         <View style={styles.modalBox}>
-          <Text style={styles.modalText}>Fill slot {(popupFillIndex ?? 0) + 1}</Text>
-          <Text style={styles.modalText}>Tap a word below to fill this slot.</Text>
+          {(() => {
+            const fills = inputFields.filter(i => i.type === 'fill');
+            const hint = popupFillIndex !== null ? fills[popupFillIndex]?.hint : undefined;
+            return hint
+              ? <Text style={styles.modalText}>{hint}</Text>
+              : <Text style={styles.modalText}>No hint available.</Text>;
+          })()}
           <TouchableOpacity onPress={() => setPopupVisible(false)}>
             <Text style={styles.modalClose}>Close</Text>
           </TouchableOpacity>
