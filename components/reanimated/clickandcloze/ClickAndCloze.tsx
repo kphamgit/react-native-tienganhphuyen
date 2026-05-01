@@ -280,7 +280,7 @@ const wordElements = useMemo(() => {
     <GestureHandlerRootView>
     <View style={styles.container}>
        
-      <View style={[styles.inputRow, { backgroundColor: 'white' }]} onLayout={onInputRowLayout}>
+      <View style={[styles.inputRow, { backgroundColor: 'red', width: '100%' }]} onLayout={onInputRowLayout}>
         {(() => {
           let fillIndex = 0;
           return inputFields?.map((item) =>
@@ -329,7 +329,7 @@ const wordElements = useMemo(() => {
 const styles = StyleSheet.create({
   container: {
     flex: 0,
-    margin: 10,
+    margin: 0,
   },
   inputRow: {
     flexDirection: 'row',
