@@ -371,22 +371,6 @@ const createQuestionAttempt = async (quizAttemptId: number, next_question: Quest
         isFetching.current = false;
       });
   }
-  /*
-useEffect(() => {
-    if (!checkButtonDisabled) {
-      //replenishQuestions();
-      console.log(" checkButtonDisabled is false. Count=", count);
-      count++;
-      console.log(" ********************* size of remainingQuestions in state: ", remainingQuestions.length);
-      console.log(" ********************* remainingQuestions in state:", remainingQuestions.map(q => ({ id: q.question.id, question_number: q.question.question_number })));
-      if (remainingQuestions.length === 0) {
-        replenishQuestions();
-      }
-    }
-  }, [checkButtonDisabled]);
-
-  */
-
 
   if (loading) {
     return (
@@ -616,13 +600,7 @@ const createFirstReviewQuestionAttempt = async (question_id: number) => {
         }
       ]}>
           <View>
-           
-                <Text style={{ fontSize: 14, color: 'gray' }}>Check button disabled: {checkButtonDisabled.toString()}</Text>
                   <Text>Question id: {question?.id} Review state: {reviewState.toString()},  Remaining questions:</Text>
-                    { remainingQuestions.map((q, index) => (
-                      <Text key={index}>- Question id: {q.question.id}, qa number: {q.question_attempt_number} </Text>
-                    ))  
-                    }
                   </View>
         <Animated.View style={[{ justifyContent: 'space-around', height: '75%', backgroundColor: 'white' }, animatedStylesSlide]}>
 

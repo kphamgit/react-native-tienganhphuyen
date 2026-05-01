@@ -9,6 +9,8 @@ import ComputeWordLayout from './ComputeWordLayout';
 import Word from './Word';
 import WordContext from './WordContext';
 
+const words = ["one", "two", "three"];
+
 interface LayoutType {
     numLines: number;
     wordStyles: StyleProp<ViewStyle>[];
@@ -56,7 +58,7 @@ interface InnerProps {
 
 //const DuoDragDrop= React.forwardRef<ChildQuestionRef, DuoDragDropProps>((props, ref) => {
 //function ClickAndCloze({content, distractors = [], enableCheckButton}: Props) {
-  const ClickAndCloze = React.forwardRef<ChildQuestionRef, Props>(
+  const ClickAndClozeSave = React.forwardRef<ChildQuestionRef, Props>(
     ({ content, content_language, wordBank = [], enableCheckButton, extraData }, ref) => {
       const { inputFields } = parseContent(content);
       const fillCount = inputFields.filter(i => i.type === 'fill').length;
@@ -109,7 +111,6 @@ const fillCount = inputFields?.filter(i => i.type === 'fill').length ?? 0;
 const [fillSlotPositions, setFillSlotPositions] = useState<{x: number, y: number}[]>([]);
 const measuredFills = React.useRef<({x: number, y: number} | null)[]>(Array(fillCount).fill(null));
 const inputRowLayout = React.useRef<{x: number, y: number} | null>(null);
-const [inputRowHeight, setInputRowHeight] = useState(0);
 
 const trySetFillPositions = () => {
   if (inputRowLayout.current && measuredFills.current.every(p => p !== null)) {
@@ -118,14 +119,12 @@ const trySetFillPositions = () => {
         const y = p!.y + inputRowLayout.current!.y - 4;
         return { x, y };
       }));
-
+      
   }
 };
 
 const onInputRowLayout = (e: LayoutChangeEvent) => {
-  const { x, y, height } = e.nativeEvent.layout;
-  inputRowLayout.current = { x, y };
-  setInputRowHeight(height);
+  inputRowLayout.current = { x: e.nativeEvent.layout.x, y: e.nativeEvent.layout.y };
   trySetFillPositions();
 };
 
@@ -142,8 +141,9 @@ const onFillSlotLayout = (e: LayoutChangeEvent, fillIndex: number) => {
 };
 
 
-const wordBankGap = 10;
-const wordBankOffsetY = inputRowHeight + wordBankGap;
+const wordBankOffsetY = 30  // the offset (distance) between the top of the word bank
+// and the bottom of the answer area. This is used to position the word bank below the answer area,
+// with some gap in between.
 
     const onLayout = (e: LayoutChangeEvent) => {
         const { width, height } = e.nativeEvent.layout;
@@ -280,7 +280,7 @@ const wordElements = useMemo(() => {
     <GestureHandlerRootView>
     <View style={styles.container}>
        
-      <View style={[styles.inputRow, { backgroundColor: 'white' }]} onLayout={onInputRowLayout}>
+      <View style={styles.inputRow} onLayout={onInputRowLayout}>
         {(() => {
           let fillIndex = 0;
           return inputFields?.map((item) =>
@@ -299,9 +299,9 @@ const wordElements = useMemo(() => {
           );
         })()}
       </View>
-      <View style={{ minHeight: wordBankHeight, backgroundColor: 'white' }} />
+      <View style={{ minHeight: wordBankHeight }} />
       <View style={[StyleSheet.absoluteFill, { zIndex: 1 }]}>
-        {inputRowHeight > 0 && wordElements.map((child, index) => (
+        {wordElements.map((child, index) => (
           <Fragment key={`${wordBank[index]}-f-${index}`}>
             <ClickableWord
               offsets={offsets}
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
  
 })
 
-export default ClickAndCloze
+export default ClickAndClozeSave
 
 /*
  fillSlot: {
