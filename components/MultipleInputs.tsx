@@ -3,16 +3,16 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { TakeQuestionProps } from './types';
 
 interface InputItem {
-  id: string; //
+  id: string;
   type: 'text' | 'input';
   value: string;
-  
+  hint?: string;
 }
 
  const MultipleInputs: React.FC<TakeQuestionProps> = ({ ref, content, enableCheckButton }) => {
   const [inputFields, setInputFields] = useState<InputItem[] | undefined >([])
   const [inputValues, setInputValues] = useState<{ [key: string]: string }>({ name: '', city: '' });
- 
+
   const blankWidthsRef = useRef<number[]>([]);
 
   const longestBlankWidth = useRef<number>(0);
@@ -20,6 +20,7 @@ interface InputItem {
   const firstInputRef = useRef<TextInput>(null); // Create a ref for the first TextInput
 
   const [ready, setReady] = useState(false);
+  const [hintWidths, setHintWidths] = useState<{ [id: string]: number }>({});
 
   useImperativeHandle(ref, () => ({
       getAnswer,
@@ -41,9 +42,10 @@ const getAnswer = () => {
     // split content by spaces or brackets
     setInputFields([]); // reset input fields before processing new content
     setInputValues({}); // reset input values before processing new content
+    setHintWidths({});
     const array = content?.split(/(\[.*?\]|\s+|#)/).filter(item => item.trim() !== '');
     //console.log(" my_array =", my_array);
-    
+
     // ["How ", "are", " you? # I'm fine, ", "thank"," you." ]
     //[ "How ","are", " you? ", "<br />", " I'm fine, ","thank", " you." ]
     // Filter out empty strings that might result from consecutive brackets
@@ -58,13 +60,13 @@ const getAnswer = () => {
         return { id: "new_line_" + index.toString(),  type: 'newline_tag', value: part,}
       }
       else if (part.includes('[')) {
-        //console.log(" found input tag =", part)
-        // use regular expression to remove the square brackets
-        part = part.replace('[', '').replace(']', '')
-        //console.log(" after removing brackets, input tag =", part)
+        const inner = part.replace('[', '').replace(']', '');
+        const hintMatch = inner.match(/^(.+?)\((.+)\)$/);
+        const value = hintMatch ? hintMatch[1].trim() : inner.trim();
+        const hint = hintMatch ? hintMatch[2].trim() : undefined;
         const input_id = "input_" + input_count.toString();
         input_count += 1;
-        return { id: input_id,  type: 'input', value: part,}
+        return { id: input_id, type: 'input', value, hint };
       }
       else {
         const static_text_id = "static_text_" + static_text_count.toString();
@@ -72,17 +74,17 @@ const getAnswer = () => {
         return { id: static_text_id, type: 'text', value: part}
       }
     })
-   
+
    // console.log("cloze_content_array=", cloze_content_array)
     setInputFields(cloze_content_array as InputItem[] | undefined);
-  
+
 
 }, [content,]);
 
   useEffect(() => {
    // console.log("MultipleInputs: useEffect to focus first input field");
    // You have to make sure that inputFields is populated and firstInputRef.current is not null
-   // because at the time the useEffect hook runs (after the initial render), 
+   // because at the time the useEffect hook runs (after the initial render),
    // the TextInput component may not exist in the DOM so the ref remains NULL.
 
     if (inputFields && inputFields.length > 0 && firstInputRef.current && ready) {
@@ -100,35 +102,42 @@ const getAnswer = () => {
     enableCheckButton(allFilled);
   };
 
-  
+
   const renderElements = inputFields?.map((item, index) => {
     if (item.type === 'text') {
       //console.log("Rendering static text with id=", item.id, "value=", item.value);
       return (
         <Text key={item.id} style={styles.text}>
           {item.value === ' '? ' ' : item.value
-          
+
           }
         </Text>
       );
     } else if (item.type === 'input' && item.id) {
-      //console.log("Rendering input field with id=", item.id);
+      const bubbleWidth = hintWidths[item.id];
       return (
-        <TextInput
-          key={item.id}
-          ref={item.id === 'input_0' ? firstInputRef : undefined} // Assign the ref to the first input field
-          style={[{width: longestBlankWidth.current + 6}, styles.input]} // add some padding
-          value={inputValues[item.id] || ''}
-          onChangeText={(text) => item.id && handleInputChange(item.id, text)}
-          autoCapitalize='none'
-          autoCorrect={false}
-          autoComplete="off" // Disable auto-complete
-          spellCheck={false} 
-          textAlign='left'
-        />
+        <View key={item.id} style={styles.inputWrapper}>
+          {!!item.hint && (
+            <View style={[styles.hintBubble, bubbleWidth ? { width: bubbleWidth + 16 } : { opacity: 0 }]}>
+              <Text style={styles.hintText}>{item.hint}</Text>
+              <View style={styles.hintTail} />
+            </View>
+          )}
+          <TextInput
+            ref={item.id === 'input_0' ? firstInputRef : undefined}
+            style={[{width: longestBlankWidth.current + 6}, styles.input, { marginBottom: 0 }]}
+            value={inputValues[item.id] || ''}
+            onChangeText={(text) => item.id && handleInputChange(item.id, text)}
+            autoCapitalize='none'
+            autoCorrect={false}
+            autoComplete="off"
+            spellCheck={false}
+            textAlign='left'
+          />
+        </View>
       );
     }
-    else 
+    else
       return null;
   });
 
@@ -164,14 +173,33 @@ const getAnswer = () => {
         </Text>
       );
     }
-    else 
+    else
       return null;
+  });
+
+  // Measure hint text widths in an unconstrained context (same pattern as computedBlankLayouts)
+  const measureHintLayouts = inputFields?.map((item) => {
+    if (item.type === 'input' && item.id && item.hint) {
+      return (
+        <Text
+          key={`hint_measure_${item.id}`}
+          onLayout={(e) => {
+            const { width } = e.nativeEvent.layout;
+            setHintWidths(prev => ({ ...prev, [item.id as string]: width }));
+          }}
+          style={[styles.hintText, { position: 'absolute', opacity: 0 }]}
+        >
+          {item.hint}
+        </Text>
+      );
+    }
+    return null;
   });
 
    return (
     <>{ ready &&
      <View style={styles.container}>
-       <View style={[{flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center'}]}>
+       <View style={[{flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', rowGap: 25}]}>
          {renderElements}
        </View>
      </View>
@@ -179,9 +207,10 @@ const getAnswer = () => {
     <View>
     <View>
       {computedBlankLayouts}
+      {measureHintLayouts}
     </View>
     </View>
-    
+
     </>
    )
  };
@@ -195,8 +224,6 @@ const styles = StyleSheet.create({
     padding: 12,
     width: '100%',
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   text: {
     fontSize: 16,
@@ -217,5 +244,37 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     backgroundColor: '#FFFFFF',
     textAlign: 'center',
+  },
+  inputWrapper: {
+    alignItems: 'center',
+    marginHorizontal: 3,
+  },
+  hintBubble: {
+    position: 'absolute',
+    top: -24,
+    left: 0,
+    backgroundColor: '#7CCC4A',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    zIndex: 10,
+  },
+  hintTail: {
+    position: 'absolute',
+    bottom: -5,
+    left: 15,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 5,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#7CCC4A',
+  },
+  hintText: {
+    fontSize: 13,
+    color: '#fff',
+    fontWeight: '600',
   },
 });

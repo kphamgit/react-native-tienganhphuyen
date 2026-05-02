@@ -23,6 +23,7 @@ interface InputItem {
   }
 
 function parseContent(content: string): { inputFields: InputItem[] } {
+  console.log("------>>>>>>>> parseContent... content = ", content);
   const parts = content.split(/(\[[^\]]+\])/);
   let fillCounter = 0;
   const inputFields: InputItem[] = parts
@@ -31,7 +32,11 @@ function parseContent(content: string): { inputFields: InputItem[] } {
       if (part.startsWith('[') && part.endsWith(']')) {
         const isFirst = fillCounter === 0;
         fillCounter++;
-        return [{ type: 'fill' as const, value: part.slice(1, -1), id: `fill_${index}`, readyForFill: isFirst }];
+        const inner = part.slice(1, -1); // strip [ ]
+        const hintMatch = inner.match(/^(.+?)\((.+)\)$/);
+        const value = hintMatch ? hintMatch[1].trim() : inner.trim();
+        const hint = hintMatch ? hintMatch[2].trim() : undefined;
+        return [{ type: 'fill' as const, value, hint, id: `fill_${index}`, readyForFill: isFirst }];
       } else {
         return part.trim().split(/\s+/).filter(w => w.length > 0).map((word, wi) => ({
           type: 'text' as const,
@@ -40,6 +45,7 @@ function parseContent(content: string): { inputFields: InputItem[] } {
         }));
       }
     });
+    console.log("parseContent... inputFields = ", JSON.stringify(inputFields));
   return { inputFields };
 }
 
@@ -302,10 +308,10 @@ const wordElements = useMemo(() => {
                     style={[item.readyForFill ? styles.fillLotReady : styles.fillLot,
                       { height: wordHeight, justifyContent: 'center', alignItems: 'center' }]}
                     onLayout={(e) => onFillSlotLayout(e, myIndex)}
-                    onPress={() => { setPopupFillIndex(myIndex); setPopupVisible(true); }}
+                    onPress={() => { if (item.readyForFill && !!item.hint) { setPopupFillIndex(myIndex); setPopupVisible(true); } }}
                   >
                     <Text style={{ color: 'transparent', fontSize: 16 }}>{longestText}</Text>
-                    <Text style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, textAlign: 'center', textAlignVertical: 'center', opacity: 0.5, fontSize: 16, color: 'black' }}>{'?'}</Text>
+                    {item.readyForFill && !!item.hint && <Text style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, textAlign: 'center', textAlignVertical: 'center', opacity: 0.5, fontSize: 16, color: 'black' }}>{'?'}</Text>}
                   </Pressable>
                 );
               })()
