@@ -106,8 +106,9 @@ const getAnswer = () => {
   const renderElements = inputFields?.map((item, index) => {
     if (item.type === 'text') {
       //console.log("Rendering static text with id=", item.id, "value=", item.value);
+      const isPunctuation = /^[.,?!;:]/.test(item.value);
       return (
-        <Text key={item.id} style={styles.text}>
+        <Text key={item.id} style={[styles.text, isPunctuation && { marginLeft: 0 }]}>
           {item.value === ' '? ' ' : item.value
 
           }
@@ -199,7 +200,7 @@ const getAnswer = () => {
    return (
     <>{ ready &&
      <View style={styles.container}>
-       <View style={[{flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', rowGap: 25}]}>
+       <View style={[{flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', rowGap: inputFields?.some(i => i.type === 'input' && !!i.hint) ? 25 : 10}]}>
          {renderElements}
        </View>
      </View>
@@ -229,6 +230,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1C1C1E',
     marginHorizontal: 3,
+    backgroundColor: 'white',
   },
   computed_blank_layout: {
     color: 'transparent',
@@ -242,7 +244,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 16,
     color: '#1C1C1E',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'white',
     textAlign: 'center',
   },
   inputWrapper: {
